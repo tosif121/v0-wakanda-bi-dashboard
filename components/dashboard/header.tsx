@@ -1,11 +1,15 @@
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
-import { Plus, GitBranch, Download, User, Play } from "lucide-react"
+import { Plus, GitBranch, Download, User, Play, RefreshCw } from "lucide-react"
 import { triggerWakandaWorkflow } from "@/lib/kestra"
 import { useState } from "react"
 
-export function DashboardHeader() {
+interface DashboardHeaderProps {
+  onRefresh?: () => void
+}
+
+export function DashboardHeader({ onRefresh }: DashboardHeaderProps) {
   const [isTriggering, setIsTriggering] = useState(false)
 
   const handleTriggerWorkflow = async () => {
@@ -22,7 +26,7 @@ export function DashboardHeader() {
     }
   }
   return (
-    <header className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-purple-500/10 via-blue-500/10 to-emerald-500/10 p-6 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50">
+    <header className="relative overflow-hidden rounded-2xl bg-linear-to-r from-purple-500/10 via-blue-500/10 to-emerald-500/10 p-6 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50">
       {/* Background Pattern */}
       <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
       
@@ -31,15 +35,15 @@ export function DashboardHeader() {
           <div className="flex items-center gap-4">
             {/* Enhanced Purple gradient "W" icon */}
             <div className="relative">
-              <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-purple-500 to-blue-600 blur-lg opacity-50 animate-pulse"></div>
-              <div className="relative flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-blue-600 shadow-xl hover:scale-110 transition-transform duration-200">
+              <div className="absolute inset-0 rounded-xl bg-linear-to-br from-purple-500 to-blue-600 blur-lg opacity-50 animate-pulse"></div>
+              <div className="relative flex h-14 w-14 items-center justify-center rounded-xl bg-linear-to-br from-purple-500 to-blue-600 shadow-xl hover:scale-110 transition-transform duration-200">
                 <span className="text-2xl font-bold text-white drop-shadow-lg">W</span>
               </div>
             </div>
             
             <div className="space-y-1">
               <div className="flex items-center gap-3">
-                <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+                <h1 className="text-3xl font-bold tracking-tight bg-linear-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
                   Wakanda BI Engine
                 </h1>
                 <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800">
@@ -61,8 +65,18 @@ export function DashboardHeader() {
       
         <div className="flex items-center gap-3">
           <div className="hidden sm:flex items-center gap-3">
+            {onRefresh && (
+              <Button 
+                variant="outline"
+                className="gap-2 hover:scale-105 transition-transform duration-200"
+                onClick={onRefresh}
+              >
+                <RefreshCw className="h-4 w-4" />
+                Refresh Data
+              </Button>
+            )}
             <Button 
-              className="gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
+              className="gap-2 bg-linear-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
               onClick={handleTriggerWorkflow}
               disabled={isTriggering}
             >

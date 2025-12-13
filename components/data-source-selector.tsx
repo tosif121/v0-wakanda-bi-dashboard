@@ -104,29 +104,7 @@ export function DataSourceSelector({ onDataProcessed }: DataSourceSelectorProps)
     }
   }
 
-  const predefinedSources = [
-    {
-      name: 'Titanic Dataset',
-      url: 'https://raw.githubusercontent.com/datasciencedojo/datasets/master/titanic.csv',
-      description: 'Classic ML dataset with passenger data',
-      type: 'csv',
-      icon: Database
-    },
-    {
-      name: 'Sales Sample Data',
-      url: 'https://raw.githubusercontent.com/plotly/datasets/master/sales_success.csv',
-      description: 'Sales performance metrics',
-      type: 'csv',
-      icon: Database
-    },
-    {
-      name: 'Customer Analytics',
-      url: 'https://raw.githubusercontent.com/IBM/telco-customer-churn-on-icp4d/master/data/Telco-Customer-Churn.csv',
-      description: 'Customer churn analysis data',
-      type: 'csv',
-      icon: Database
-    }
-  ]
+
 
   const sourceType = urlInput ? detectDataSourceType(urlInput) : null
 
@@ -158,10 +136,7 @@ export function DataSourceSelector({ onDataProcessed }: DataSourceSelectorProps)
               <Link className="h-4 w-4" />
               URL/Link
             </TabsTrigger>
-            <TabsTrigger value="samples" className="gap-2">
-              <Database className="h-4 w-4" />
-              Samples
-            </TabsTrigger>
+
           </TabsList>
 
           <TabsContent value="upload" className="space-y-4">
@@ -241,37 +216,7 @@ export function DataSourceSelector({ onDataProcessed }: DataSourceSelectorProps)
             </div>
           </TabsContent>
 
-          <TabsContent value="samples" className="space-y-4">
-            <div className="space-y-3">
-              <Label>Sample Datasets</Label>
-              {predefinedSources.map((source, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <source.icon className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                    <div>
-                      <p className="font-medium text-gray-900 dark:text-white">{source.name}</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">{source.description}</p>
-                    </div>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      setUrlInput(source.url)
-                      setActiveTab('url')
-                    }}
-                    className="gap-2"
-                  >
-                    <Link className="h-3 w-3" />
-                    Use
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </TabsContent>
+
         </Tabs>
       </CardContent>
     </Card>

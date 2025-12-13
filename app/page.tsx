@@ -73,7 +73,7 @@ export default function Dashboard() {
     fetchRealData()
   }, [])
 
-  if (displayLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-slate-950 transition-colors duration-200">
         <div className="mx-auto max-w-7xl space-y-6 p-4 md:p-6 lg:p-8">
@@ -113,27 +113,28 @@ export default function Dashboard() {
     )
   }
 
-  if (!displayData) {
+  if (!dashboardData && !loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-slate-950 transition-colors duration-200">
         <div className="mx-auto max-w-7xl space-y-6 p-4 md:p-6 lg:p-8">
           <DashboardHeader />
           <div className="flex items-center justify-center py-20">
             <div className="text-center space-y-4">
-              <p className="text-gray-600 dark:text-gray-400">No data available. Run your Kestra workflow to see results!</p>
+              <p className="text-gray-600 dark:text-gray-400">
+                {error ? `Error: ${error}` : 'No data available. Run your Kestra workflow to see results!'}
+              </p>
               <div className="space-x-4">
                 <button 
-                  onClick={testFetchData}
-                  disabled={testLoading}
-                  className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 disabled:opacity-50"
+                  onClick={fetchRealData}
+                  className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600"
                 >
-                  {testLoading ? 'Loading...' : 'Load Real Data'}
+                  Load Real Data
                 </button>
                 <button 
                   onClick={() => window.location.reload()} 
                   className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
                 >
-                  Refresh Dashboard
+                  Refresh Page
                 </button>
               </div>
             </div>
@@ -143,16 +144,16 @@ export default function Dashboard() {
     )
   }
 
-  const latestInsights = displayData.latestExecution?.ai_insights?.[0] || null
-  const latestDecision = displayData.latestExecution?.decisions?.[0] || null
+  const latestInsights = dashboardData?.latestExecution?.ai_insights?.[0] || null
+  const latestDecision = dashboardData?.latestExecution?.decisions?.[0] || null
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-950 transition-colors duration-200">
       <div className="mx-auto max-w-7xl space-y-6 p-4 md:p-6 lg:p-8">
-        <DashboardHeader />
-        <StatsCards stats={displayData.stats} />
+        <DashboardHeader onRefresh={fetchRealData} />
+        <StatsCards stats={dashboardData.stats} />
         <div className="grid gap-6 lg:grid-cols-2" data-upload-section>
-          <LatestExecution execution={displayData.latestExecution} />
+          <LatestExecution execution={dashboardData.latestExecution} />
           <AIInsights insights={latestInsights} />
         </div>
         
@@ -173,7 +174,7 @@ export default function Dashboard() {
           <AIPerformance />
         </div>
         
-        <ExecutionHistory executions={displayData.executionHistory} />
+        <ExecutionHistory executions={dashboardData.executionHistory} />
       </div>
       <FloatingActions />
       <DebugPanel />
