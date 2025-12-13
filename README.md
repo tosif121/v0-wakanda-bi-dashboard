@@ -12,6 +12,37 @@ A modern, professional dashboard for AI-powered data orchestration and automatio
 
 **Production URL**: [https://vercel.com/tosif121s-projects/v0-wakanda-bi-dashboard](https://vercel.com/tosif121s-projects/v0-wakanda-bi-dashboard)
 
+## 🤖 Built with Cline - Autonomous AI Development Environment
+
+This project was developed using **Cline**, an autonomous coding environment that helps you build, iterate, and experiment with AI agents directly from your editor. Perfect for rapid prototyping and local agent development.
+
+### 🎯 Why Cline for AI Agent Development?
+
+**Cline** provides an integrated development experience specifically designed for AI-powered applications:
+
+- **🔄 Autonomous Code Generation**: AI-assisted development with intelligent code suggestions and implementations
+- **⚡ Rapid Prototyping**: Quickly iterate on AI agent workflows and business logic
+- **🧠 Local Agent Development**: Build and test AI agents in your local environment before deployment
+- **📊 Real-time Feedback**: Instant feedback loops for AI model integration and testing
+- **🔧 Seamless Integration**: Direct integration with popular AI services and APIs
+- **🎨 UI/UX Optimization**: AI-powered suggestions for user interface improvements
+
+### 🚀 Cline Development Workflow
+
+1. **AI-Assisted Architecture**: Cline helped design the optimal system architecture for AI workflow orchestration
+2. **Intelligent Code Generation**: Automated generation of TypeScript interfaces, API routes, and component structures
+3. **Real-time Testing**: Live testing of Kestra workflows and AI integrations during development
+4. **Performance Optimization**: AI-driven suggestions for code optimization and best practices
+5. **Documentation Generation**: Automated documentation and code comments for better maintainability
+
+### 💡 Cline Benefits for This Project
+
+- **Better Code Quality**: AI-powered code reviews and suggestions improved overall code quality
+- **Seamless AI Integration**: Simplified integration with Perplexity AI and Kestra workflows
+- **Responsive Design**: AI-assisted responsive design implementation for mobile and desktop
+- **Error Prevention**: Proactive error detection and resolution during development
+
+**Learn more about Cline**: [cline.bot](https://cline.bot/) - Transform your development workflow with autonomous AI assistance.
 ## 🏆 AssembleHack25 Sponsor Tools Integration
 
 This project demonstrates comprehensive usage of all required sponsor tools for AssembleHack25:
@@ -437,15 +468,13 @@ npm start
 
 ### Data Upload
 - `POST /api/upload-csv` - Upload CSV files to cloud storage
-- `GET /api/test-db` - Test database connection and fetch data
+- `POST /api/validate-url` - Validate and preview data source URLs
+- `GET /api/preview-data` - Preview data from URLs
 
 ### Kestra Integration
 - `POST /api/kestra/trigger` - Trigger workflow execution
 - `GET /api/kestra/health` - Check Kestra service health
 - `GET /api/kestra/status/[id]` - Get execution status
-
-### Utilities
-- `POST /api/clear-data` - Clear test data (development only)
 
 ## 🌐 Deployment
 

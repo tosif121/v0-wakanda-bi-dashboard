@@ -1,12 +1,9 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Geist, Geist_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
+import { Toaster } from 'react-hot-toast'
 import { ThemeProvider } from "@/components/theme-provider"
 import "./globals.css"
-
-const _geist = Geist({ subsets: ["latin"] })
-const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "Wakanda BI Engine | AI-Powered Business Intelligence",
@@ -46,6 +43,34 @@ export default function RootLayout({
           disableTransitionOnChange={false}
         >
           {children}
+          
+          {/* Global Toast Container */}
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              duration: 3000,
+              style: {
+                background: '#363636',
+                color: '#fff',
+                fontSize: '14px',
+              },
+              success: {
+                style: {
+                  background: '#10b981',
+                },
+              },
+              error: {
+                style: {
+                  background: '#ef4444',
+                },
+              },
+              loading: {
+                style: {
+                  background: '#3b82f6',
+                },
+              },
+            }}
+          />
         </ThemeProvider>
         <Analytics />
       </body>
