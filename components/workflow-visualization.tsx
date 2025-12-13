@@ -26,58 +26,79 @@ interface WorkflowStep {
 interface WorkflowVisualizationProps {
   currentStep?: string
   executionData?: any
+  latestExecution?: any
 }
 
-export function WorkflowVisualization({ currentStep, executionData }: WorkflowVisualizationProps) {
+export function WorkflowVisualization({ currentStep, executionData, latestExecution }: WorkflowVisualizationProps) {
+  // Determine workflow status based on latest execution
+  const getStepStatus = (stepId: string, index: number) => {
+    if (!latestExecution) return 'pending'
+    
+    const executionState = latestExecution.state?.current || 'CREATED'
+    
+    // Map execution states to workflow steps
+    switch (executionState) {
+      case 'CREATED':
+      case 'RUNNING':
+        return index === 0 ? 'running' : 'pending'
+      case 'SUCCESS':
+        return 'completed'
+      case 'FAILED':
+        return index === 0 ? 'failed' : 'pending'
+      default:
+        return 'pending'
+    }
+  }
+
   const workflowSteps: WorkflowStep[] = [
     {
       id: 'download_data',
       name: 'Download Data',
       description: 'Fetch data from source URL',
       icon: Download,
-      status: currentStep === 'download_data' ? 'running' : 'completed'
+      status: getStepStatus('download_data', 0)
     },
     {
       id: 'clean_data',
       name: 'Clean Data',
       description: 'Process and validate dataset',
       icon: Database,
-      status: currentStep === 'clean_data' ? 'running' : currentStep ? 'completed' : 'pending'
+      status: getStepStatus('clean_data', 1)
     },
     {
       id: 'ai_analysis',
       name: 'AI Analysis',
       description: 'Generate insights with Perplexity AI',
       icon: Brain,
-      status: currentStep === 'ai_analysis' ? 'running' : 'pending'
+      status: getStepStatus('ai_analysis', 2)
     },
     {
       id: 'ai_decisions',
       name: 'AI Decisions',
       description: 'Create automated decisions',
       icon: Zap,
-      status: currentStep === 'ai_decisions' ? 'running' : 'pending'
+      status: getStepStatus('ai_decisions', 3)
     },
     {
       id: 'check_and_trigger',
       name: 'Threshold Check',
       description: 'Evaluate impact threshold',
       icon: Target,
-      status: currentStep === 'check_and_trigger' ? 'running' : 'pending'
+      status: getStepStatus('check_and_trigger', 4)
     },
     {
       id: 'final_report',
       name: 'Generate Report',
       description: 'Create executive summary',
       icon: FileText,
-      status: currentStep === 'final_report' ? 'running' : 'pending'
+      status: getStepStatus('final_report', 5)
     },
     {
       id: 'store_in_supabase',
       name: 'Store Results',
       description: 'Save to dashboard database',
       icon: Upload,
-      status: currentStep === 'store_in_supabase' ? 'running' : 'pending'
+      status: getStepStatus('store_in_supabase', 6)
     }
   ]
 
@@ -101,35 +122,35 @@ export function WorkflowVisualization({ currentStep, executionData }: WorkflowVi
 
   return (
     <Card className="transition-all duration-200 hover:shadow-lg border-gray-200 dark:border-gray-800 bg-white dark:bg-slate-900">
-      <CardHeader className="pb-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-linear-to-br from-purple-500 to-indigo-600">
-            <Zap className="h-5 w-5 text-white" />
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-purple-500 to-indigo-600">
+            <Zap className="h-4 w-4 text-white" />
           </div>
           <div>
-            <CardTitle className="text-lg font-semibold text-gray-900 dark:text-white">
+            <CardTitle className="text-base font-semibold text-gray-900 dark:text-white">
               Workflow Pipeline
             </CardTitle>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Wakanda BI Engine processing steps
+            <p className="text-xs text-gray-600 dark:text-gray-400">
+              Processing steps
             </p>
           </div>
         </div>
       </CardHeader>
       
       <CardContent>
-        <div className="space-y-4">
+        <div className="space-y-3">
           {workflowSteps.map((step, index) => (
             <div key={step.id} className="relative">
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
                 {/* Step Icon */}
-                <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${
+                <div className={`flex h-7 w-7 items-center justify-center rounded-lg ${
                   step.status === 'completed' ? 'bg-emerald-100 dark:bg-emerald-900/30' :
                   step.status === 'running' ? 'bg-blue-100 dark:bg-blue-900/30' :
                   step.status === 'failed' ? 'bg-red-100 dark:bg-red-900/30' :
                   'bg-gray-100 dark:bg-gray-800'
                 }`}>
-                  <step.icon className={`h-5 w-5 ${
+                  <step.icon className={`h-3.5 w-3.5 ${
                     step.status === 'completed' ? 'text-emerald-600 dark:text-emerald-400' :
                     step.status === 'running' ? 'text-blue-600 dark:text-blue-400' :
                     step.status === 'failed' ? 'text-red-600 dark:text-red-400' :
@@ -139,22 +160,17 @@ export function WorkflowVisualization({ currentStep, executionData }: WorkflowVi
 
                 {/* Step Content */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h4 className="font-medium text-gray-900 dark:text-white">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <h4 className="text-sm font-medium text-gray-900 dark:text-white">
                       {step.name}
                     </h4>
-                    <Badge className={getStatusColor(step.status)} variant="outline">
+                    <Badge className={`text-xs ${getStatusColor(step.status)}`} variant="outline">
                       {step.status}
                     </Badge>
                   </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-xs text-gray-600 dark:text-gray-400">
                     {step.description}
                   </p>
-                  {step.duration && (
-                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                      Duration: {step.duration}
-                    </p>
-                  )}
                 </div>
 
                 {/* Status Indicator */}
@@ -165,30 +181,55 @@ export function WorkflowVisualization({ currentStep, executionData }: WorkflowVi
 
               {/* Connection Line */}
               {index < workflowSteps.length - 1 && (
-                <div className="absolute left-5 top-10 w-px h-6 bg-gray-200 dark:bg-gray-700"></div>
+                <div className="absolute left-3.5 top-7 w-px h-4 bg-gray-200 dark:bg-gray-700"></div>
               )}
             </div>
           ))}
         </div>
 
         {/* Workflow Summary */}
-        <div className="mt-6 p-4 bg-gray-50 dark:bg-slate-800 rounded-lg">
-          <div className="grid grid-cols-3 gap-4 text-center">
+        <div className="mt-4 p-3 bg-gray-50 dark:bg-slate-800 rounded-lg">
+          <div className="grid grid-cols-3 gap-3 text-center">
             <div>
               <p className="text-xs text-gray-600 dark:text-gray-400">Total Steps</p>
-              <p className="text-lg font-bold text-gray-900 dark:text-white">{workflowSteps.length}</p>
+              <p className="text-base font-bold text-gray-900 dark:text-white">{workflowSteps.length}</p>
             </div>
             <div>
               <p className="text-xs text-gray-600 dark:text-gray-400">Completed</p>
-              <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
+              <p className="text-base font-bold text-emerald-600 dark:text-emerald-400">
                 {workflowSteps.filter(s => s.status === 'completed').length}
               </p>
             </div>
             <div>
-              <p className="text-xs text-gray-600 dark:text-gray-400">Est. Duration</p>
-              <p className="text-lg font-bold text-blue-600 dark:text-blue-400">~2min</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">Status</p>
+              <p className="text-base font-bold text-blue-600 dark:text-blue-400">
+                {latestExecution ? (
+                  latestExecution.state?.current === 'SUCCESS' ? 'Complete' :
+                  latestExecution.state?.current === 'RUNNING' ? 'Running' :
+                  latestExecution.state?.current === 'FAILED' ? 'Failed' : 'Created'
+                ) : 'Ready'}
+              </p>
             </div>
           </div>
+          
+          {latestExecution && (
+            <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-gray-600 dark:text-gray-400">Latest Execution:</span>
+                <span className="font-mono text-gray-900 dark:text-white">
+                  {latestExecution.id?.slice(0, 8)}...
+                </span>
+              </div>
+              {latestExecution.startDate && (
+                <div className="flex items-center justify-between text-xs mt-1">
+                  <span className="text-gray-600 dark:text-gray-400">Started:</span>
+                  <span className="text-gray-900 dark:text-white">
+                    {new Date(latestExecution.startDate).toLocaleTimeString()}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

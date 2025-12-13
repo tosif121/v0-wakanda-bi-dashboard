@@ -40,7 +40,6 @@ export function KestraStatus({ executionId, onExecutionComplete }: KestraStatusP
       }
     } catch (err) {
       setError('Failed to fetch execution status')
-      console.error(err)
     }
   }
 
@@ -52,7 +51,6 @@ export function KestraStatus({ executionId, onExecutionComplete }: KestraStatusP
       setError('') // Clear error on success
     } catch (err) {
       setError('Failed to fetch recent executions')
-      console.error(err)
     } finally {
       setLoading(false)
     }
@@ -66,7 +64,6 @@ export function KestraStatus({ executionId, onExecutionComplete }: KestraStatusP
       setError('') // Clear error on success
     } catch (err) {
       setError('Failed to check Kestra health')
-      console.error(err)
     } finally {
       setHealthLoading(false)
     }
@@ -123,79 +120,78 @@ export function KestraStatus({ executionId, onExecutionComplete }: KestraStatusP
 
   return (
     <Card className="transition-all duration-200 hover:shadow-lg border-gray-200 dark:border-gray-800 bg-white dark:bg-slate-900">
-      <CardHeader className="pb-4">
+      <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-linear-to-br from-orange-500 to-red-600">
-              <Activity className="h-5 w-5 text-white" />
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-orange-500 to-red-600">
+              <Activity className="h-4 w-4 text-white" />
             </div>
             <div>
-              <CardTitle className="text-lg font-semibold text-gray-900 dark:text-white">
-                Kestra Workflow Status
+              <CardTitle className="text-base font-semibold text-gray-900 dark:text-white">
+                Kestra Status
               </CardTitle>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Real-time execution monitoring
+              <p className="text-xs text-gray-600 dark:text-gray-400">
+                Workflow monitoring
               </p>
             </div>
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
               onClick={() => {
                 fetchRecentExecutions()
                 fetchHealthStatus()
               }}
               disabled={loading || healthLoading}
-              className="gap-2"
+              className="gap-1.5 h-7 px-2"
             >
-              <RefreshCw className={`h-4 w-4 ${loading || healthLoading ? 'animate-spin' : ''}`} />
-              Refresh
+              <RefreshCw className={`h-3.5 w-3.5 ${loading || healthLoading ? 'animate-spin' : ''}`} />
+              <span className="text-xs">Refresh</span>
             </Button>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => window.open(process.env.NEXT_PUBLIC_KESTRA_URL, '_blank')}
-              className="gap-2"
+              onClick={() => window.open('http://localhost:8080', '_blank')}
+              className="gap-1.5 h-7 px-2"
             >
               <ExternalLink className="h-3 w-3" />
-              Kestra UI
+              <span className="text-xs">Open</span>
             </Button>
           </div>
         </div>
       </CardHeader>
       
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-4">
         {/* Health Status */}
         {healthStatus && (
-          <div className="space-y-4">
-            <h4 className="font-medium text-gray-900 dark:text-white">Connection Status</h4>
+          <div className="space-y-3">
+            <h4 className="text-sm font-medium text-gray-900 dark:text-white">Connection Status</h4>
             
-            <div className="p-4 bg-gray-50 dark:bg-slate-800 rounded-lg">
+            <div className="p-3 bg-gray-50 dark:bg-slate-800 rounded-lg">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   {healthStatus.kestra.healthy ? (
-                    <CheckCircle className="h-4 w-4 text-emerald-500" />
+                    <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />
                   ) : (
-                    <XCircle className="h-4 w-4 text-red-500" />
+                    <XCircle className="h-3.5 w-3.5 text-red-500" />
                   )}
-                  <span className="text-sm font-medium text-gray-900 dark:text-white">
+                  <span className="text-xs font-medium text-gray-900 dark:text-white">
                     Kestra Server
                   </span>
                 </div>
-                <Badge className={healthStatus.kestra.healthy 
+                <Badge className={`text-xs ${healthStatus.kestra.healthy 
                   ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'
                   : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800'
-                }>
+                }`}>
                   {healthStatus.kestra.healthy ? 'Connected' : 'Disconnected'}
                 </Badge>
               </div>
               
-              <div className="mt-2 text-xs text-gray-600 dark:text-gray-400">
-                <div>URL: {healthStatus.kestra.url}</div>
+              <div className="mt-2 text-xs text-gray-600 dark:text-gray-400 space-y-0.5">
                 <div>Namespace: {healthStatus.environment.namespace}</div>
-                <div>Flow ID: {healthStatus.environment.flowId}</div>
+                <div>Flow: {healthStatus.environment.flowId}</div>
                 {!healthStatus.kestra.healthy && healthStatus.kestra.error && (
                   <div className="mt-1 text-red-600 dark:text-red-400">
                     Error: {healthStatus.kestra.error}
