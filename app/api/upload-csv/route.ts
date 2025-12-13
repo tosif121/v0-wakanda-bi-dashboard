@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { writeFile, mkdir } from 'fs/promises'
-import { join } from 'path'
-import { existsSync } from 'fs'
+import { put } from '@vercel/blob'
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,36 +20,58 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'File size must be less than 10MB' }, { status: 400 })
     }
 
-    // Create uploads directory if it doesn't exist
-    const uploadsDir = join(process.cwd(), 'public', 'uploads')
-    if (!existsSync(uploadsDir)) {
-      await mkdir(uploadsDir, { recursive: true })
-    }
-
     // Generate unique filename
     const timestamp = Date.now()
     const filename = `${timestamp}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
-    const filepath = join(uploadsDir, filename)
 
-    // Save file
+    // Get file content for preview
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
-    await writeFile(filepath, buffer)
-
-    // Return the public URL
-    const publicUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/uploads/${filename}`
-
-    // Read first few lines for preview
     const fileContent = buffer.toString('utf-8')
     const lines = fileContent.split('\n').slice(0, 5)
     const headers = lines[0]?.split(',') || []
     const rowCount = fileContent.split('\n').length - 1
+
+    // Upload to Vercel Blob Storage
+    let publicUrl: string
+
+    if (process.env.BLOB_READ_WRITE_TOKEN && process.env.BLOB_READ_WRITE_TOKEN !== 'vercel_blob_rw_your_token_here') {
+      // Use Vercel Blob Storage
+
+      
+      const blob = await put(filename, file, {
+        access: 'public',
+        token: process.env.BLOB_READ_WRITE_TOKEN,
+      })
+      
+      publicUrl = blob.url
+
+    } else {
+      // Fallback to local storage (for development)
+
+      
+      const { writeFile, mkdir } = await import('fs/promises')
+      const { join } = await import('path')
+      const { existsSync } = await import('fs')
+      
+      const uploadsDir = join(process.cwd(), 'public', 'uploads')
+      if (!existsSync(uploadsDir)) {
+        await mkdir(uploadsDir, { recursive: true })
+      }
+      
+      const filepath = join(uploadsDir, filename)
+      await writeFile(filepath, buffer)
+      
+      publicUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/uploads/${filename}`
+
+    }
 
     return NextResponse.json({
       success: true,
       url: publicUrl,
       filename,
       size: file.size,
+      storage: publicUrl.includes('vercel-storage.com') ? 'vercel-blob' : 'local',
       preview: {
         headers,
         rowCount,
@@ -59,7 +79,7 @@ export async function POST(request: NextRequest) {
       }
     })
   } catch (error) {
-    console.error('Upload error:', error)
+
     return NextResponse.json(
       { error: 'Failed to upload file' },
       { status: 500 }

@@ -4,10 +4,19 @@ import { LineChart, Line, ResponsiveContainer } from 'recharts'
 import type { DashboardStats } from "@/lib/types"
 
 interface StatsCardsProps {
-  stats: DashboardStats
+  stats?: DashboardStats
 }
 
 export function StatsCards({ stats }: StatsCardsProps) {
+  // Provide default stats if none provided
+  const defaultStats = {
+    totalExecutions: 0,
+    insightsGenerated: 0,
+    automationsTriggered: 0,
+    successRate: '0'
+  }
+  
+  const displayStats = stats || defaultStats
   // Mini chart data for each stat
   const generateMiniChartData = (trend: number) => {
     const baseValue = 50
@@ -19,7 +28,7 @@ export function StatsCards({ stats }: StatsCardsProps) {
   const statItems = [
     {
       label: "Total Executions",
-      value: stats.totalExecutions.toLocaleString(),
+      value: displayStats.totalExecutions.toLocaleString(),
       trend: "+12.5%",
       icon: Zap,
       trendUp: true,
@@ -30,7 +39,7 @@ export function StatsCards({ stats }: StatsCardsProps) {
     },
     {
       label: "AI Insights Generated",
-      value: stats.insightsGenerated.toLocaleString(),
+      value: displayStats.insightsGenerated.toLocaleString(),
       trend: "+8.2%",
       icon: Sparkles,
       trendUp: true,
@@ -41,7 +50,7 @@ export function StatsCards({ stats }: StatsCardsProps) {
     },
     {
       label: "Automations Triggered",
-      value: stats.automationsTriggered.toLocaleString(),
+      value: displayStats.automationsTriggered.toLocaleString(),
       trend: "+15.3%",
       icon: GitBranch,
       trendUp: true,
@@ -52,7 +61,7 @@ export function StatsCards({ stats }: StatsCardsProps) {
     },
     {
       label: "Success Rate",
-      value: `${stats.successRate}%`,
+      value: `${displayStats.successRate}%`,
       trend: "+2.1%",
       icon: CheckCircle,
       trendUp: true,

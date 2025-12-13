@@ -6,7 +6,7 @@ import { History, ArrowUpDown, ExternalLink } from "lucide-react"
 import type { Execution } from "@/lib/types"
 
 interface ExecutionHistoryProps {
-  executions: Execution[]
+  executions?: Execution[]
 }
 
 const statusStyles: Record<string, string> = {
@@ -15,7 +15,7 @@ const statusStyles: Record<string, string> = {
   failed: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800",
 }
 
-export function ExecutionHistory({ executions }: ExecutionHistoryProps) {
+export function ExecutionHistory({ executions = [] }: ExecutionHistoryProps) {
 
   const ProgressBar = ({ value }: { value: number }) => {
     const getColor = (score: number) => {

@@ -8,21 +8,22 @@ description: |
 inputs:
   - id: data_source_url
     type: STRING
-    defaults: "https://raw.githubusercontent.com/datasciencedojo/datasets/master/titanic.csv"
+    required: true
 
   - id: recipient_email
     type: STRING
-    defaults: "executive@company.com"
+    required: false
 
   - id: decision_threshold
     type: INT
-    defaults: 75
+    required: false
 
 tasks:
   # PHASE 1: DOWNLOAD DATA
   - id: download_data
     type: io.kestra.plugin.fs.http.Download
     uri: "{{ inputs.data_source_url }}"
+    failOnError: true
 
   # PHASE 2: CLEAN DATA
   - id: clean_data

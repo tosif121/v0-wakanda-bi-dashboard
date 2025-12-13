@@ -34,7 +34,7 @@ export function ImpactDistribution({ data }: ImpactDistributionProps) {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
+          <div className="flex items-center justify-center h-48 sm:h-64 text-gray-500 dark:text-gray-400">
             No impact distribution data available
           </div>
         </CardContent>
@@ -60,9 +60,9 @@ export function ImpactDistribution({ data }: ImpactDistributionProps) {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
           {/* Pie Chart */}
-          <div className="h-64">
+          <div className="h-48 sm:h-64">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -91,16 +91,22 @@ export function ImpactDistribution({ data }: ImpactDistributionProps) {
           </div>
 
           {/* Bar Chart */}
-          <div className="h-64">
+          <div className="h-48 sm:h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={data}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
                 <XAxis 
                   dataKey="range" 
                   className="text-gray-600 dark:text-gray-400"
-                  fontSize={12}
+                  fontSize={10}
+                  tick={{ fontSize: 10 }}
                 />
-                <YAxis className="text-gray-600 dark:text-gray-400" fontSize={12} />
+                <YAxis 
+                  className="text-gray-600 dark:text-gray-400" 
+                  fontSize={10}
+                  tick={{ fontSize: 10 }}
+                  width={30}
+                />
                 <Tooltip 
                   contentStyle={{
                     backgroundColor: 'rgb(15 23 42)',
@@ -120,15 +126,15 @@ export function ImpactDistribution({ data }: ImpactDistributionProps) {
         </div>
 
         {/* Legend */}
-        <div className="mt-4 grid grid-cols-5 gap-2">
+        <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
           {data.map((item, index) => (
             <div key={item.range} className="flex items-center gap-2">
               <div 
-                className="w-3 h-3 rounded-full" 
+                className="w-3 h-3 rounded-full shrink-0" 
                 style={{ backgroundColor: COLORS[index] }}
               />
-              <div className="text-xs">
-                <div className="font-medium text-gray-900 dark:text-white">{item.range}</div>
+              <div className="text-xs min-w-0">
+                <div className="font-medium text-gray-900 dark:text-white truncate">{item.range}</div>
                 <div className="text-gray-600 dark:text-gray-400">{item.percentage}%</div>
               </div>
             </div>

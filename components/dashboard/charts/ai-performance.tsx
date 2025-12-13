@@ -42,7 +42,7 @@ export function AIPerformance({ data }: AIPerformanceProps) {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-center h-80 text-gray-500 dark:text-gray-400">
+            <div className="flex items-center justify-center h-48 sm:h-64 lg:h-80 text-gray-500 dark:text-gray-400">
               No AI performance data available
             </div>
           </CardContent>
@@ -66,7 +66,7 @@ export function AIPerformance({ data }: AIPerformanceProps) {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-center h-80 text-gray-500 dark:text-gray-400">
+            <div className="flex items-center justify-center h-48 sm:h-64 lg:h-80 text-gray-500 dark:text-gray-400">
               No real-time performance data available
             </div>
           </CardContent>
@@ -96,7 +96,7 @@ export function AIPerformance({ data }: AIPerformanceProps) {
         </CardHeader>
         <CardContent>
           {data.radar ? (
-            <div className="h-80">
+            <div className="h-48 sm:h-64 lg:h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <RadarChart data={data.radar}>
                   <PolarGrid className="stroke-gray-200 dark:stroke-gray-700" />
@@ -123,7 +123,7 @@ export function AIPerformance({ data }: AIPerformanceProps) {
               </ResponsiveContainer>
             </div>
           ) : (
-            <div className="flex items-center justify-center h-80 text-gray-500 dark:text-gray-400">
+            <div className="flex items-center justify-center h-48 sm:h-64 lg:h-80 text-gray-500 dark:text-gray-400">
               No radar data available
             </div>
           )}
@@ -149,19 +149,23 @@ export function AIPerformance({ data }: AIPerformanceProps) {
         </CardHeader>
         <CardContent>
           {data.timeline ? (
-            <div className="h-80">
+            <div className="h-48 sm:h-64 lg:h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={data.timeline}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
                   <XAxis 
                     dataKey="time" 
                     className="text-gray-600 dark:text-gray-400"
-                    fontSize={12}
+                    fontSize={10}
+                    tick={{ fontSize: 10 }}
+                    interval="preserveStartEnd"
                   />
                   <YAxis 
                     domain={[80, 100]}
                     className="text-gray-600 dark:text-gray-400" 
-                    fontSize={12} 
+                    fontSize={10}
+                    tick={{ fontSize: 10 }}
+                    width={40}
                   />
                   <Tooltip 
                     contentStyle={{
@@ -199,7 +203,7 @@ export function AIPerformance({ data }: AIPerformanceProps) {
               </ResponsiveContainer>
             </div>
           ) : (
-            <div className="flex items-center justify-center h-80 text-gray-500 dark:text-gray-400">
+            <div className="flex items-center justify-center h-48 sm:h-64 lg:h-80 text-gray-500 dark:text-gray-400">
               No timeline data available
             </div>
           )}

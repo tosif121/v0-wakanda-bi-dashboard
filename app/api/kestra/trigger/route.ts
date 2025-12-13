@@ -10,10 +10,18 @@ export async function POST(request: NextRequest) {
     const namespace = process.env.KESTRA_NAMESPACE || 'assemblehack25.wakanda'
     const flowId = process.env.KESTRA_FLOW_ID || 'wakanda_business_intelligence_engine'
     
+    // Validate required data
+    if (!body.dataSourceUrl) {
+      return NextResponse.json(
+        { error: 'dataSourceUrl is required - no default data allowed' },
+        { status: 400 }
+      )
+    }
+
     const payload = {
       inputs: {
-        data_source_url: body.dataSourceUrl || 'https://raw.githubusercontent.com/datasciencedojo/datasets/master/titanic.csv',
-        recipient_email: body.recipientEmail || 'executive@company.com',
+        data_source_url: body.dataSourceUrl,
+        recipient_email: body.recipientEmail || 'user@company.com',
         decision_threshold: body.decisionThreshold || 75
       }
     }
@@ -27,7 +35,11 @@ export async function POST(request: NextRequest) {
 
     // Kestra expects multipart/form-data
     const formData = new FormData()
-    formData.append('inputs', JSON.stringify(payload.inputs))
+    
+    // Add each input separately
+    Object.entries(payload.inputs).forEach(([key, value]) => {
+      formData.append(key, String(value))
+    })
 
     const response = await fetch(
       `${kestraUrl}/api/v1/main/executions/${namespace}/${flowId}`,

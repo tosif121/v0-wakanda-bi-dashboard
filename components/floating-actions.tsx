@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
-import { Plus, Play, Download, GitBranch, X, Upload } from 'lucide-react'
+import { Plus, Play, Download, GitBranch, X } from 'lucide-react'
 import { triggerWakandaWorkflow } from '@/lib/kestra'
 
 export function FloatingActions() {
@@ -13,8 +13,7 @@ export function FloatingActions() {
   const handleTriggerWorkflow = async () => {
     setIsTriggering(true)
     try {
-      const execution = await triggerWakandaWorkflow()
-      console.log('Workflow triggered:', execution.id)
+      await triggerWakandaWorkflow()
     } catch (error) {
       console.error('Failed to trigger workflow:', error)
     } finally {
@@ -29,18 +28,13 @@ export function FloatingActions() {
   }
 
   const actions = [
-    {
-      icon: Upload,
-      label: 'Upload CSV',
-      onClick: handleFileUpload,
-      className: 'bg-indigo-500 hover:bg-indigo-600 text-white'
-    },
+
     {
       icon: Play,
       label: 'Run Analysis',
       onClick: handleTriggerWorkflow,
       disabled: isTriggering,
-      className: 'bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white'
+      className: 'bg-linear-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white'
     },
     {
       icon: GitBranch,
@@ -51,7 +45,24 @@ export function FloatingActions() {
     {
       icon: Download,
       label: 'Download Report',
-      onClick: () => console.log('Download report'),
+      onClick: () => {
+        // Generate and download a simple report
+        const reportData = {
+          timestamp: new Date().toISOString(),
+          dashboard: 'Wakanda BI Engine',
+          status: 'Active',
+          message: 'Report generation feature coming soon!'
+        }
+        const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `wakanda-bi-report-${new Date().toISOString().split('T')[0]}.json`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+      },
       className: 'bg-emerald-500 hover:bg-emerald-600 text-white'
     }
   ]

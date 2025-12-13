@@ -9,7 +9,6 @@ export function useRealtimeDashboard() {
   const [loading, setLoading] = useState(true)
 
   const fetchDashboardData = async () => {
-    console.log('Fetching dashboard data...')
     try {
       // Get executions with related data
       const { data: executions, error: execError } = await supabase
@@ -21,8 +20,6 @@ export function useRealtimeDashboard() {
         `)
         .order('created_at', { ascending: false })
 
-      console.log('Executions query result:', { executions, execError })
-
       if (execError) {
         console.error('Executions query error:', execError)
         setLoading(false)
@@ -30,7 +27,6 @@ export function useRealtimeDashboard() {
       }
 
       if (!executions) {
-        console.log('No executions found')
         setLoading(false)
         return
       }
@@ -45,8 +41,6 @@ export function useRealtimeDashboard() {
         .from('ai_insights')
         .select('*', { count: 'exact', head: true })
 
-      console.log('Insights count result:', { insightsCount, insightsError })
-
       const stats = {
         totalExecutions,
         insightsGenerated: insightsCount || 0,
@@ -60,12 +54,10 @@ export function useRealtimeDashboard() {
         executionHistory: executions.slice(0, 5)
       }
 
-      console.log('Dashboard data prepared:', dashboardData)
       setData(dashboardData)
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
     } finally {
-      console.log('Setting loading to false')
       setLoading(false)
     }
   }
@@ -80,7 +72,6 @@ export function useRealtimeDashboard() {
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'executions' },
         () => {
-          console.log('Executions updated, refreshing dashboard...')
           fetchDashboardData()
         }
       )
@@ -91,7 +82,6 @@ export function useRealtimeDashboard() {
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'ai_insights' },
         () => {
-          console.log('AI insights updated, refreshing dashboard...')
           fetchDashboardData()
         }
       )
@@ -102,7 +92,6 @@ export function useRealtimeDashboard() {
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'decisions' },
         () => {
-          console.log('Decisions updated, refreshing dashboard...')
           fetchDashboardData()
         }
       )

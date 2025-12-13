@@ -59,7 +59,7 @@ export function ExecutionTrends({ data }: ExecutionTrendsProps) {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="h-80">
+        <div className="h-64 sm:h-80">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={data}>
               <defs>
@@ -76,9 +76,16 @@ export function ExecutionTrends({ data }: ExecutionTrendsProps) {
               <XAxis 
                 dataKey="date" 
                 className="text-gray-600 dark:text-gray-400"
-                fontSize={12}
+                fontSize={10}
+                tick={{ fontSize: 10 }}
+                interval="preserveStartEnd"
               />
-              <YAxis className="text-gray-600 dark:text-gray-400" fontSize={12} />
+              <YAxis 
+                className="text-gray-600 dark:text-gray-400" 
+                fontSize={10}
+                tick={{ fontSize: 10 }}
+                width={40}
+              />
               <Tooltip 
                 contentStyle={{
                   backgroundColor: 'rgb(15 23 42)',
