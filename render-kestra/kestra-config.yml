@@ -1,46 +1,42 @@
-# 🚀 Kestra Configuration for Railway Deployment
+# 🚀 Kestra Configuration for Render Deployment
 kestra:
   # Server configuration
   server:
-    port: ${PORT:8080}
+    port: ${KESTRA_SERVER_PORT:10000}
     host: "0.0.0.0"
     access-log:
       enabled: true
       format: "combined"
-  
-  # Micronaut server configuration for Railway
-  micronaut:
-    server:
-      port: ${PORT:8080}
-      host: "0.0.0.0"
     
-  # Repository configuration (in-memory for Railway)
+  # Repository configuration (persistent for production)
   repository:
-    type: memory
+    type: postgres
     
-  # Queue configuration
+  # Queue configuration (persistent for production)
   queue:
-    type: memory
+    type: postgres
     
-  # Storage configuration (local filesystem)
+  # Storage configuration (persistent local filesystem)
   storage:
     type: local
     local:
       base-path: /app/storage
       
-  # Database configuration (H2 for simplicity on Railway)
+  # Database configuration (persistent H2 file for Render)
   datasources:
     postgres:
-      url: jdbc:h2:mem:kestra;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+      url: jdbc:h2:file:/app/storage/kestra;DB_CLOSE_DELAY=-1;AUTO_SERVER=TRUE
       driverClassName: org.h2.Driver
-      username: sa
-      password: ""
+      username: kestra
+      password: "${KESTRA_DATASOURCES_POSTGRES_PASSWORD}"
       
-  # Security configuration
+  # Security configuration (basic auth for production)
   security:
     type: basic
     basic:
-      enabled: false  # Disable for Railway deployment
+      enabled: true
+      username: "${KESTRA_SECURITY_BASIC_USERNAME}"
+      password: "${KESTRA_SECURITY_BASIC_PASSWORD}"
       
   # Plugins configuration
   plugins:
@@ -60,7 +56,7 @@ kestra:
   metrics:
     enabled: true
     
-  # Variables (can be overridden by Railway environment variables)
+  # Variables (can be overridden by Render environment variables)
   variables:
     perplexity_api_key: "${PERPLEXITY_API_KEY}"
     supabase_url: "${SUPABASE_URL}"

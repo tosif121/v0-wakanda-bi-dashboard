@@ -12,7 +12,7 @@ A modern, professional dashboard for AI-powered data orchestration and automatio
 
 **Production URL**: [https://v0-wakanda-bi-dashboard-peujpjvxp-tosif121s-projects.vercel.app](https://v0-wakanda-bi-dashboard-peujpjvxp-tosif121s-projects.vercel.app)
 **GitHub Repository**: [https://github.com/tosif121/v0-wakanda-bi-dashboard](https://github.com/tosif121/v0-wakanda-bi-dashboard)
-**Kestra Workflows**: Railway Cloud Deployment (see deployment instructions below)
+**Kestra Workflows**: Local Development with Docker (see setup instructions below)
 
 ### 🎬 **Demo Video**
 
@@ -94,11 +94,11 @@ Further development was enhanced using **Cline**, an autonomous coding environme
 ```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
 │   Frontend      │    │  Kestra Engine   │    │   Database      │
-│   (Vercel)      │────│   (Railway)      │────│  (Supabase)     │
+│   (Vercel)      │────│   (Render Cloud) │────│  (Supabase)     │
 │                 │    │                  │    │                 │
 │ • Next.js App   │    │ • AI Workflows   │    │ • Real-time DB  │
-│ • API Routes    │    │ • Docker Deploy  │    │ • Auth & RLS    │
-│ • Global CDN    │    │ • 24/7 Available │    │ • Auto-scaling  │
+│ • API Routes    │    │ • 24/7 Available │    │ • Auth & RLS    │
+│ • Global CDN    │    │ • Docker Deploy  │    │ • Auto-scaling  │
 └─────────────────┘    └──────────────────┘    └─────────────────┘
          │                       │                       │
          └───────────────────────┼───────────────────────┘
@@ -135,8 +135,8 @@ GitHub Push → Actions → Tests → Build → Deploy → Monitor
 - **Error Handling**: Robust failure recovery and retry mechanisms
 - **Scheduled Execution**: Automated daily/weekly business reports
 
-### 🌐 **Full Cloud Deployment**
-- **Railway + Docker**: 24/7 Kestra availability with auto-scaling
+### 🌐 **Production Deployment**
+- **Render Kestra**: Cloud-hosted AI workflow engine with 24/7 availability
 - **Vercel Frontend**: Global CDN with serverless API routes
 - **Supabase Database**: Real-time data with built-in auth and RLS
 - **GitHub Actions**: Comprehensive CI/CD with automated testing
@@ -553,41 +553,71 @@ docker-compose up -d
    - `SUPABASE_URL`
    - `SUPABASE_KEY`
 
-**Option 2: Railway Cloud Deployment (Recommended) 🚀**
+**Option 2: Render Cloud Deployment (Recommended) 🚀**
 
 **Quick Deploy:**
 ```bash
-# 1. Deploy Kestra to Railway
-cd railway-kestra
-./deploy-to-railway.sh
+# 1. Deploy Kestra to Render
+cd render-kestra
+./deploy-to-render.sh
 
-# 2. Set environment variables in Railway dashboard:
-# - PERPLEXITY_API_KEY=your_key
-# - SUPABASE_URL=your_supabase_url  
-# - SUPABASE_KEY=your_supabase_key
-
-# 3. Update .env.local with your Railway URL
-KESTRA_URL=https://your-kestra-app.railway.app
+# 2. Follow the instructions to deploy on Render
+# 3. Update .env.local with your Render URL
+KESTRA_URL=https://kestra-wakanda-bi.onrender.com
 ```
 
-**Manual Setup (if script fails):**
+**Manual Setup:**
+1. Go to [render.com](https://render.com) and sign up/login
+2. Click "New +" → "Web Service"
+3. Connect your GitHub repo: `https://github.com/tosif121/v0-wakanda-bi-dashboard`
+4. Configure:
+   - Name: `kestra-wakanda-bi`
+   - Environment: `Docker`
+   - Root Directory: `render-kestra`
+   - Plan: `Free`
+5. Add Environment Variables:
+   - `KESTRA_SERVER_PORT`: `10000`
+   - `JAVA_OPTS`: `-Xmx512m -Xms256m`
+   - `KESTRA_SECURITY_BASIC_USERNAME`: `[choose_secure_username]`
+   - `KESTRA_SECURITY_BASIC_PASSWORD`: `[choose_secure_password]`
+   - `KESTRA_DATASOURCES_POSTGRES_PASSWORD`: `[choose_secure_db_password]`
+   - `PERPLEXITY_API_KEY`: `[copy_from_env_local]`
+   - `SUPABASE_URL`: `[copy_from_env_local]`
+   - `SUPABASE_KEY`: `[copy_from_env_local]`
+
+**Benefits of Render Deployment:**
+- ✅ **24/7 Availability**: Always accessible for demos
+- ✅ **Reliable Docker Support**: Better than Railway
+- ✅ **Free Tier**: No costs for development
+- ✅ **Easy Setup**: Simple configuration
+- ✅ **Global Access**: Share with team/judges
+- ✅ **Persistent Storage**: File-based H2 database for data persistence
+- ✅ **Enterprise Security**: Configurable authentication with secure credentials
+
+**🔐 Security Requirements**: 
+- **CRITICAL**: Set strong, unique credentials for KESTRA_USERNAME and KESTRA_PASSWORD
+- **Never use default passwords** - choose secure credentials for production
+- **All API keys** must be copied from your .env.local file
+- **Credentials are never displayed** in logs for security
+
+**Option 3: Local Fallback (If Render Fails)**
+
 ```bash
-cd railway-kestra
-railway login
-railway init
-railway up
+# Start Kestra with Docker (macOS)
+docker run --pull=always --rm -it -p 8080:8080 --user=root \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v /tmp:/tmp \
+  -e JAVA_OPTS="-XX:UseSVE=0" \
+  kestra/kestra:latest server local
 
-# Then set variables in Railway dashboard
-# Get URL from: railway domain
+# For other systems (remove the JAVA_OPTS flag)
+docker run --pull=always --rm -it -p 8080:8080 --user=root \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v /tmp:/tmp \
+  kestra/kestra:latest server local
+
+# Then use: KESTRA_URL=http://localhost:8080
 ```
-
-**Benefits of Railway deployment:**
-- ✅ **24/7 Availability**: No need to keep laptop running
-- ✅ **Team Access**: Global access from anywhere  
-- ✅ **Auto-scaling**: Handles traffic automatically
-- ✅ **Free Tier**: $5/month credit included
-- ✅ **Zero Maintenance**: Railway manages infrastructure
-- ✅ **Docker-based**: Consistent environment
 
 #### 🔌 Handling Kestra Server Offline State
 
@@ -691,14 +721,26 @@ cp .env.example .env.local
 PERPLEXITY_API_KEY=your_perplexity_key
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_key
-KESTRA_URL=https://your-railway-kestra.railway.app
+KESTRA_URL=http://localhost:8080
 ```
 
-### **3. Deploy Kestra to Railway**
+### **3. Deploy Kestra to Render**
 ```bash
-cd railway-kestra
-./deploy-to-railway.sh
-# Follow the prompts and update KESTRA_URL in .env.local
+cd render-kestra
+./deploy-to-render.sh
+# Follow the instructions and update KESTRA_URL in .env.local
+```
+
+**Or start locally if Render fails:**
+```bash
+# Start Kestra with Docker
+docker run --pull=always --rm -it -p 8080:8080 --user=root \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v /tmp:/tmp \
+  -e JAVA_OPTS="-XX:UseSVE=0" \
+  kestra/kestra:latest server local
+
+# Then use: KESTRA_URL=http://localhost:8080
 ```
 
 ### **4. Start Development**
@@ -885,31 +927,35 @@ For support and questions:
 #### **Kestra Connection Issues**
 ```bash
 # Problem: "Kestra server offline" message
-# Solution: Check Railway deployment status
-railway logs  # Check Kestra logs
-railway status  # Verify deployment is running
+# Solution: Start local Kestra with Docker
+docker run --pull=always --rm -it -p 8080:8080 --user=root \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v /tmp:/tmp \
+  kestra/kestra:latest server local
 
-# Update KESTRA_URL in .env.local with correct Railway URL
+# Verify KESTRA_URL in .env.local points to localhost:8080
+KESTRA_URL=http://localhost:8080
 ```
 
 #### **Environment Variables**
 ```bash
-# Problem: Railway variables not working
-# Solution: Set variables in Railway dashboard manually
-# Go to: https://railway.app/dashboard → Select your project
-# Navigate to: Variables tab → Add variables:
+# Problem: Kestra can't access environment variables
+# Solution: Set secrets in Kestra UI at http://localhost:8080
+# Go to: Administration → Secrets → Add secrets:
 # - PERPLEXITY_API_KEY
 # - SUPABASE_URL  
 # - SUPABASE_KEY
 ```
 
-#### **Build Failures**
+#### **Docker Issues**
 ```bash
-# Problem: Docker build fails on Railway
-# Solution: Check Dockerfile and dependencies
-railway logs --build  # View build logs
+# Problem: Docker fails to start Kestra
+# Solution: Check Docker is running and ports are available
+docker ps  # Check running containers
+lsof -i :8080  # Check if port 8080 is in use
 
-# Common fix: Ensure all files are in railway-kestra/ directory
+# Kill any process using port 8080 if needed
+kill -9 $(lsof -t -i:8080)
 ```
 
 #### **API Errors**
@@ -925,39 +971,40 @@ vercel --prod  # Redeploy to Vercel
 
 #### **🔒 Environment Variables Security**
 - **Never commit** `.env.local` or `.env` files to version control
-- **Use Railway Dashboard** to set sensitive variables instead of command line
+- **Use Kestra Secrets UI** to set sensitive variables securely
 - **Rotate API keys** regularly, especially after public repository exposure
-- **Validate variables** before deployment to prevent empty or malformed values
+- **Validate variables** before use to prevent empty or malformed values
 
-#### **🛡️ Deployment Security**
+#### **🛡️ Local Development Security**
 - **Review logs** for any exposed secrets before sharing
-- **Use project-specific URLs** instead of hardcoded project IDs
-- **Enable 2FA** on all service accounts (Railway, Vercel, Supabase)
-- **Monitor access logs** for unauthorized deployment attempts
+- **Use localhost URLs** for development
+- **Enable 2FA** on all service accounts (Vercel, Supabase)
+- **Keep Docker containers updated** for security patches
 
 #### **🔐 API Key Management**
 ```bash
-# ✅ Good: Set via Railway dashboard
-railway variables --set "PERPLEXITY_API_KEY=your_key"
+# ✅ Good: Set via Kestra UI at http://localhost:8080
+# Go to Administration → Secrets → Add Secret
+# Name: PERPLEXITY_API_KEY, Value: your_key
 
-# ❌ Bad: Exposed in terminal history
-echo "PERPLEXITY_API_KEY=your_key" | railway variables --kv
+# ❌ Bad: Hardcoded in workflow files
+# Never put API keys directly in YAML files
 ```
 
 ### **Getting Help**
 
-1. **Check Logs**: Always start with `railway logs` and browser console
-2. **Verify URLs**: Ensure all service URLs are correct in .env.local
-3. **Test Individually**: Test each service (Vercel, Railway, Supabase) separately
-4. **Environment Variables**: Double-check all API keys and URLs are set correctly
+1. **Check Logs**: Always start with Docker logs and browser console
+2. **Verify URLs**: Ensure KESTRA_URL points to http://localhost:8080
+3. **Test Individually**: Test each service (Vercel, Kestra, Supabase) separately
+4. **Environment Variables**: Double-check all API keys are set in Kestra UI
 5. **Security Review**: Ensure no secrets are exposed in logs or terminal output
 
 ### **Support Resources**
 
-- 📚 **Railway Docs**: [railway.app/docs](https://railway.app/docs)
 - 🔧 **Kestra Docs**: [kestra.io/docs](https://kestra.io/docs)
 - 🚀 **Vercel Docs**: [vercel.com/docs](https://vercel.com/docs)
 - 💾 **Supabase Docs**: [supabase.com/docs](https://supabase.com/docs)
+- 🐳 **Docker Docs**: [docs.docker.com](https://docs.docker.com)
 
 ---
 
@@ -984,7 +1031,7 @@ MIT License - feel free to use this project as a foundation for your own AI-powe
 
 - **AssembleHack25** for the inspiration and platform
 - **Vercel** for seamless deployment and hosting
-- **Railway** for reliable container hosting
+- **Docker** for containerized development environment
 - **Supabase** for powerful database and real-time features
 - **Kestra** for professional workflow orchestration
 - **Perplexity AI** for intelligent business analysis

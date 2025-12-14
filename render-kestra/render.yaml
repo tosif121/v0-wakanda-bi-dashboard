@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: kestra-wakanda-bi
+    env: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: oregon
+    branch: main
+    envVars:
+      - key: KESTRA_SERVER_PORT
+        value: 10000
+      - key: JAVA_OPTS
+        value: "-Xmx512m -Xms256m"
+      - key: KESTRA_SECURITY_BASIC_USERNAME
+        sync: false
+      - key: KESTRA_SECURITY_BASIC_PASSWORD
+        sync: false
+      - key: KESTRA_DATASOURCES_POSTGRES_PASSWORD
+        sync: false
+      - key: PERPLEXITY_API_KEY
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+    buildCommand: ""
+    startCommand: ""
+    healthCheckPath: /health
