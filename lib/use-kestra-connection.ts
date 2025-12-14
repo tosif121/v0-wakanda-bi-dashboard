@@ -26,6 +26,11 @@ export function useKestraConnection() {
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const checkConnection = useCallback(async () => {
+    // Prevent multiple simultaneous checks
+    if (state.isChecking) {
+      return state.isConnected
+    }
+    
     setState(prev => ({ ...prev, isChecking: true }))
     
     try {
@@ -37,24 +42,38 @@ export function useKestraConnection() {
         isConnected: isHealthy,
         isChecking: false,
         lastChecked: new Date(),
-        error: isHealthy ? null : health.kestra.error,
+        error: isHealthy ? null : (health.kestra.error || 'Connection failed'),
         retryCount: isHealthy ? 0 : prev.retryCount
       }))
       
       return isHealthy
-    } catch (error) {
+    } catch (error: unknown) {
+      let errorMessage = 'Connection failed'
+      
+      if (error instanceof Error) {
+        if (error.message.includes('ECONNREFUSED')) {
+          errorMessage = 'Kestra server not running'
+        } else if (error.message.includes('timeout')) {
+          errorMessage = 'Connection timeout'
+        } else if (error.message.includes('fetch')) {
+          errorMessage = 'Network error'
+        } else {
+          errorMessage = error.message
+        }
+      }
+      
       setState(prev => ({
         ...prev,
         isConnected: false,
         isChecking: false,
         lastChecked: new Date(),
-        error: error instanceof Error ? error.message : 'Connection failed',
+        error: errorMessage,
         retryCount: prev.retryCount
       }))
       
       return false
     }
-  }, [])
+  }, [state.isChecking, state.isConnected])
 
   // Auto-retry when disconnected
   useEffect(() => {

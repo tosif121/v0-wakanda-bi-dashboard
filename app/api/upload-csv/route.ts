@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
       }
       
       const filepath = join(uploadsDir, filename)
-      await writeFile(filepath, buffer)
+      await writeFile(filepath, new Uint8Array(buffer))
       
       publicUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/uploads/${filename}`
 
@@ -78,10 +78,29 @@ export async function POST(request: NextRequest) {
         sampleRows: lines.slice(1, 4)
       }
     })
-  } catch (error) {
+  } catch (error: unknown) {
+    console.error('Upload error:', error)
+    
+    // Provide specific error messages
+    let errorMessage = 'Failed to upload file'
+    
+    if (error instanceof Error) {
+      if (error.message.includes('ENOSPC')) {
+        errorMessage = 'Not enough storage space available'
+      } else if (error.message.includes('EACCES')) {
+        errorMessage = 'Permission denied - unable to save file'
+      } else if (error.message.includes('timeout')) {
+        errorMessage = 'Upload timed out - please try again'
+      } else {
+        errorMessage = `Upload failed: ${error.message}`
+      }
+    }
 
     return NextResponse.json(
-      { error: 'Failed to upload file' },
+      { 
+        error: errorMessage,
+        details: process.env.NEXT_PUBLIC_SHOW_ERROR_DETAILS === 'true' && error instanceof Error ? error.message : undefined
+      },
       { status: 500 }
     )
   }

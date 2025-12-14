@@ -17,28 +17,50 @@ export function FileUpload({ onFileProcessed }: FileUploadProps) {
   const [isProcessing, setIsProcessing] = useState(false)
   const [processingResult, setProcessingResult] = useState<any>(null)
   const [uploadUrl, setUploadUrl] = useState<string | null>(null)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0]
     if (file) {
       setUploadedFile(file)
+      setUploadError(null)
+      setIsUploading(true)
       
-      // Upload file to a temporary location (you can use your preferred file storage)
+      // Upload file to a temporary location
       const formData = new FormData()
       formData.append('file', file)
       
       try {
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 30000) // 30s timeout
+        
         const response = await fetch('/api/upload-csv', {
           method: 'POST',
-          body: formData
+          body: formData,
+          signal: controller.signal
         })
+        
+        clearTimeout(timeoutId)
         
         if (response.ok) {
           const result = await response.json()
           setUploadUrl(result.url)
+          setUploadError(null)
+        } else {
+          const errorData = await response.json().catch(() => ({ error: 'Upload failed' }))
+          setUploadError(errorData.error || `Upload failed: ${response.statusText}`)
+          setUploadedFile(null)
         }
-      } catch (error) {
-        console.error('Upload failed:', error)
+      } catch (error: unknown) {
+        if (error instanceof Error && error.name === 'AbortError') {
+          setUploadError('Upload timed out. Please try again with a smaller file.')
+        } else {
+          setUploadError(error instanceof Error ? error.message : 'Upload failed. Please try again.')
+        }
+        setUploadedFile(null)
+      } finally {
+        setIsUploading(false)
       }
     }
   }, [])
@@ -57,6 +79,8 @@ export function FileUpload({ onFileProcessed }: FileUploadProps) {
     if (!uploadUrl) return
     
     setIsProcessing(true)
+    setUploadError(null)
+    
     try {
       const execution = await triggerWakandaWorkflow({
         dataSourceUrl: uploadUrl,
@@ -66,8 +90,9 @@ export function FileUpload({ onFileProcessed }: FileUploadProps) {
       
       setProcessingResult(execution)
       onFileProcessed?.(execution)
-    } catch (error) {
-      console.error('Processing failed:', error)
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Processing failed. Please try again.'
+      setUploadError(errorMessage)
     } finally {
       setIsProcessing(false)
     }
@@ -77,6 +102,7 @@ export function FileUpload({ onFileProcessed }: FileUploadProps) {
     setUploadedFile(null)
     setUploadUrl(null)
     setProcessingResult(null)
+    setUploadError(null)
   }
 
   return (
@@ -97,6 +123,21 @@ export function FileUpload({ onFileProcessed }: FileUploadProps) {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Error Display */}
+        {uploadError && (
+          <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+            <div className="flex items-center gap-2">
+              <X className="h-5 w-5 text-red-600" />
+              <span className="font-medium text-red-800 dark:text-red-400">
+                Upload Error
+              </span>
+            </div>
+            <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+              {uploadError}
+            </p>
+          </div>
+        )}
+
         {!uploadedFile ? (
           <div
             {...getRootProps()}
@@ -108,7 +149,14 @@ export function FileUpload({ onFileProcessed }: FileUploadProps) {
           >
             <input {...getInputProps()} />
             <Upload className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-            {isDragActive ? (
+            {isUploading ? (
+              <div className="space-y-2">
+                <div className="animate-spin h-8 w-8 border-2 border-purple-500 border-t-transparent rounded-full mx-auto"></div>
+                <p className="text-purple-600 dark:text-purple-400 font-medium">
+                  Uploading file...
+                </p>
+              </div>
+            ) : isDragActive ? (
               <p className="text-purple-600 dark:text-purple-400 font-medium">
                 Drop your CSV file here...
               </p>

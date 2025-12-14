@@ -117,10 +117,25 @@ export default function Dashboard() {
       if (showToast && !isInitialLoad) {
         toast.success('Dashboard updated!', { id: 'dashboard-refresh' });
       }
-    } catch (err) {
-      // Handle error silently in production
+    } catch (err: unknown) {
+      console.error('Dashboard fetch error:', err);
+      
+      // Show specific error messages
+      let errorMessage = 'Failed to update dashboard';
+      
+      if (err instanceof Error) {
+        if (err.message.includes('fetch')) {
+          errorMessage = 'Network error - check your connection';
+        } else if (err.message.includes('timeout')) {
+          errorMessage = 'Request timed out - services may be slow';
+        }
+      }
+      
       if (showToast && !isInitialLoad) {
-        toast.error('Failed to update dashboard', { id: 'dashboard-refresh' });
+        toast.error(errorMessage, { 
+          id: 'dashboard-refresh',
+          duration: 4000
+        });
       }
     } finally {
       setLoading(false);

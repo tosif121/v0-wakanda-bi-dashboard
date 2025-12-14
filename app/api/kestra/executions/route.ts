@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Try without authentication first (Railway deployment)
+    // Try without authentication first (local deployment)
     let response = await fetch(
       `${kestraUrl}/api/v1/executions/search?namespace=${namespace}&flowId=${flowId}&size=${limit}`,
       {
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
       }
     ).catch(() => null)
 
-    // If that fails, try with authentication (local deployment)
+    // If that fails, try with authentication (secured deployment)
     if (!response || !response.ok) {
       const username = process.env.KESTRA_USERNAME
       const password = process.env.KESTRA_PASSWORD

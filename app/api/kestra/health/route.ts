@@ -70,11 +70,11 @@ export async function GET() {
             }
           })
         }
-      } catch (error) {
+      } catch (error: unknown) {
         lastError = error
         responseDetails.push({
           endpoint,
-          error: error.message
+          error: error instanceof Error ? error.message : 'Unknown error'
         })
       }
     }
@@ -83,7 +83,7 @@ export async function GET() {
       kestra: {
         url: kestraUrl,
         healthy: false,
-        error: lastError?.message || 'All endpoints failed',
+        error: (lastError instanceof Error ? lastError.message : 'All endpoints failed'),
         auth: username ? 'Credentials configured' : 'No credentials',
         status: 'offline'
       },
@@ -93,17 +93,17 @@ export async function GET() {
       },
       debug: {
         testedEndpoints: responseDetails,
-        lastError: lastError?.message
+        lastError: lastError instanceof Error ? lastError.message : 'Unknown error'
       }
     })
     
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Kestra health check failed:', error)
     return NextResponse.json({
       kestra: {
         url: process.env.KESTRA_URL || 'http://localhost:8080',
         healthy: false,
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Health check failed',
         status: 'offline'
       },
       environment: {

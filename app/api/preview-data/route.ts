@@ -101,17 +101,17 @@ export async function GET(request: NextRequest) {
         }
       })
 
-    } catch (error) {
+    } catch (error: unknown) {
       clearTimeout(timeoutId)
       
-      if (error.name === 'AbortError') {
+      if (error instanceof Error && error.name === 'AbortError') {
         return NextResponse.json({ error: 'Request timeout - data source took too long to respond' }, { status: 408 })
       }
       
       throw error
     }
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Preview data error:', error)
     return NextResponse.json(
       { error: 'Failed to preview data source' },

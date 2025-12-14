@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { FileText, Eye, Play } from 'lucide-react'
+import { FileText, Eye, Play, X } from 'lucide-react'
 import { triggerWakandaWorkflow } from '@/lib/kestra'
 
 interface CSVPreviewProps {
@@ -20,6 +20,8 @@ export function CSVPreview({ file, onProcess }: CSVPreviewProps) {
   } | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [uploadUrl, setUploadUrl] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
 
   useEffect(() => {
     const reader = new FileReader()
@@ -41,21 +43,40 @@ export function CSVPreview({ file, onProcess }: CSVPreviewProps) {
 
     // Upload file
     const uploadFile = async () => {
+      setIsUploading(true)
+      setError(null)
+      
       const formData = new FormData()
       formData.append('file', file)
       
       try {
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 30000)
+        
         const response = await fetch('/api/upload-csv', {
           method: 'POST',
-          body: formData
+          body: formData,
+          signal: controller.signal
         })
+        
+        clearTimeout(timeoutId)
         
         if (response.ok) {
           const result = await response.json()
           setUploadUrl(result.url)
+          setError(null)
+        } else {
+          const errorData = await response.json().catch(() => ({ error: 'Upload failed' }))
+          setError(errorData.error || `Upload failed: ${response.statusText}`)
         }
-      } catch (error) {
-        console.error('Upload failed:', error)
+      } catch (error: unknown) {
+        if (error instanceof Error && error.name === 'AbortError') {
+          setError('Upload timed out. Please try again.')
+        } else {
+          setError(error instanceof Error ? error.message : 'Upload failed. Please try again.')
+        }
+      } finally {
+        setIsUploading(false)
       }
     }
 
@@ -66,6 +87,8 @@ export function CSVPreview({ file, onProcess }: CSVPreviewProps) {
     if (!uploadUrl) return
     
     setIsProcessing(true)
+    setError(null)
+    
     try {
       const execution = await triggerWakandaWorkflow({
         dataSourceUrl: uploadUrl,
@@ -74,8 +97,9 @@ export function CSVPreview({ file, onProcess }: CSVPreviewProps) {
       })
       
       onProcess?.(execution)
-    } catch (error) {
-      console.error('Processing failed:', error)
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Processing failed. Please try again.'
+      setError(errorMessage)
     } finally {
       setIsProcessing(false)
     }
@@ -136,6 +160,32 @@ export function CSVPreview({ file, onProcess }: CSVPreviewProps) {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
+          {/* Error Display */}
+          {error && (
+            <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+              <div className="flex items-center gap-2">
+                <X className="h-5 w-5 text-red-600" />
+                <span className="font-medium text-red-800 dark:text-red-400">
+                  {isUploading || !uploadUrl ? 'Upload Error' : 'Processing Error'}
+                </span>
+              </div>
+              <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                {error}
+              </p>
+            </div>
+          )}
+
+          {/* Upload Status */}
+          {isUploading && (
+            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+              <div className="flex items-center gap-2">
+                <div className="animate-spin h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                <span className="font-medium text-blue-800 dark:text-blue-400">
+                  Uploading file...
+                </span>
+              </div>
+            </div>
+          )}
           {/* Data Preview */}
           <div>
             <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-2 flex items-center gap-2">
