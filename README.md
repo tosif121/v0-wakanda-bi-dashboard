@@ -10,7 +10,7 @@ A modern, professional dashboard for AI-powered data orchestration and automatio
 
 ## 🚀 Live Demo & Deployment
 
-**Production URL**: [https://v0-wakanda-bi-dashboard-7esgbv6vs-tosif121s-projects.vercel.app](https://v0-wakanda-bi-dashboard-7esgbv6vs-tosif121s-projects.vercel.app)
+**Production URL**: [https://v0-wakanda-bi-dashboard.vercel.app](https://v0-wakanda-bi-dashboard.vercel.app)
 **GitHub Repository**: [https://github.com/tosif121/v0-wakanda-bi-dashboard](https://github.com/tosif121/v0-wakanda-bi-dashboard)
 **Kestra UI**: http://localhost:8080 (local development)
 

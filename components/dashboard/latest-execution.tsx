@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Clock, FileText, Hash, Gauge } from "lucide-react"
+import moment from "moment"
 import type { Execution } from "@/lib/types"
 
 interface LatestExecutionProps {
@@ -93,11 +94,14 @@ export function LatestExecution({ execution }: LatestExecutionProps) {
           <div className="flex items-center gap-3">
             <Clock className="h-4 w-4 text-gray-500 dark:text-gray-400" />
             <span className="text-gray-600 dark:text-gray-400">Started:</span>
-            <span className="font-medium text-gray-900 dark:text-white">
-              {new Date(execution.start_time).toLocaleString()}
-            </span>
-            <span className="text-gray-400">•</span>
-            <span className="font-medium text-gray-900 dark:text-white">Duration: {execution.duration}</span>
+            <div className="flex flex-col">
+              <span className="font-medium text-gray-900 dark:text-white">
+                {moment(execution.start_time).format('MMM DD, YYYY h:mm:ss A')}
+              </span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                24hr: {moment(execution.start_time).format('HH:mm:ss')} • Duration: {execution.duration}
+              </span>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <FileText className="h-4 w-4 text-gray-500 dark:text-gray-400" />
@@ -133,9 +137,10 @@ export function LatestExecution({ execution }: LatestExecutionProps) {
         </div>
 
         <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            Created: {new Date(execution.created_at).toLocaleString()}
-          </p>
+          <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+            <span>Created: {moment(execution.created_at).format('MMM DD, YYYY h:mm A')}</span>
+            <span>24hr: {moment(execution.created_at).format('HH:mm')}</span>
+          </div>
         </div>
       </CardContent>
     </Card>

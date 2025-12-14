@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { 
-  Play, 
   CheckCircle, 
   XCircle, 
   Clock, 
@@ -18,26 +17,46 @@ import {
   Wifi,
   WifiOff
 } from 'lucide-react'
+import moment from 'moment'
 import { getExecutionStatus, listRecentExecutions, type KestraExecution } from '@/lib/kestra'
 import { useKestraConnectionContext } from '@/lib/kestra-connection-context'
 
 interface KestraStatusProps {
   executionId?: string
   onExecutionComplete?: (execution: KestraExecution) => void
+  onProgressClear?: () => void
 }
 
-export function KestraStatus({ executionId, onExecutionComplete }: KestraStatusProps) {
+export function KestraStatus({ executionId, onExecutionComplete, onProgressClear }: KestraStatusProps) {
   const [execution, setExecution] = useState<KestraExecution | null>(null)
   const [recentExecutions, setRecentExecutions] = useState<KestraExecution[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [showCompletionMessage, setShowCompletionMessage] = useState(false)
   
   const connection = useKestraConnectionContext()
 
   const fetchExecutionStatus = async (id: string) => {
     try {
       const exec = await getExecutionStatus(id)
+      const previousExecution = execution
       setExecution(exec)
+      
+      // Check if workflow just completed (reached 100%)
+      const currentProgress = calculateProgress(exec)
+      const previousProgress = previousExecution ? calculateProgress(previousExecution) : 0
+      
+      if (exec.state.current === 'SUCCESS' && currentProgress === 100 && previousProgress < 100) {
+        // Show completion message
+        setShowCompletionMessage(true)
+        
+        // Clear progress after 5 seconds
+        setTimeout(() => {
+          setShowCompletionMessage(false)
+          setExecution(null)
+          onProgressClear?.()
+        }, 5000)
+      }
       
       if (exec.state.current === 'SUCCESS' || exec.state.current === 'FAILED') {
         onExecutionComplete?.(exec)
@@ -210,7 +229,7 @@ export function KestraStatus({ executionId, onExecutionComplete }: KestraStatusP
               <div>Namespace: {process.env.NEXT_PUBLIC_KESTRA_NAMESPACE || 'assemblehack25.wakanda'}</div>
               <div>Flow: {process.env.NEXT_PUBLIC_KESTRA_FLOW_ID || 'wakanda_business_intelligence_engine'}</div>
               {connection.lastChecked && (
-                <div>Last checked: {connection.lastChecked.toLocaleTimeString()}</div>
+                <div>Last checked: {moment(connection.lastChecked).format('h:mm:ss A')} ({moment(connection.lastChecked).format('HH:mm:ss')})</div>
               )}
               {connection.error && (
                 <div className="mt-1 text-red-600 dark:text-red-400">
@@ -238,8 +257,41 @@ export function KestraStatus({ executionId, onExecutionComplete }: KestraStatusP
           )}
         </div>
 
+        {/* Completion Message */}
+        {showCompletionMessage && (
+          <div className="space-y-4 animate-in fade-in-0 slide-in-from-top-2 duration-500">
+            <div className="p-4 bg-linear-to-r from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800 shadow-lg">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/30 animate-pulse">
+                  <CheckCircle className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-emerald-800 dark:text-emerald-300">
+                    Workflow Completed Successfully! 🎉
+                  </h4>
+                  <p className="text-sm text-emerald-700 dark:text-emerald-400">
+                    All processing steps have been completed
+                  </p>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-emerald-700 dark:text-emerald-400">Progress</span>
+                  <span className="font-bold text-emerald-800 dark:text-emerald-300">100%</span>
+                </div>
+                <Progress value={100} className="h-3 bg-emerald-100 dark:bg-emerald-900/30" />
+              </div>
+              
+              <div className="mt-3 text-xs text-emerald-600 dark:text-emerald-400">
+                ✓ Data processed • ✓ AI analysis complete • ✓ Results stored
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Current Execution */}
-        {execution && (
+        {execution && !showCompletionMessage && (
           <div className="space-y-4">
             <h4 className="font-medium text-gray-900 dark:text-white">Current Execution</h4>
             
@@ -277,7 +329,7 @@ export function KestraStatus({ executionId, onExecutionComplete }: KestraStatusP
                           {history.state}
                         </span>
                         <span className="text-gray-500 dark:text-gray-500 ml-auto">
-                          {new Date(history.date).toLocaleTimeString()}
+                          {moment(history.date).format('h:mm A')}
                         </span>
                       </div>
                     ))}
@@ -330,7 +382,7 @@ export function KestraStatus({ executionId, onExecutionComplete }: KestraStatusP
                           {exec.id.substring(0, 12)}...
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                          {exec.startDate ? new Date(exec.startDate).toLocaleString() : 'Unknown time'}
+                          {exec.startDate ? moment(exec.startDate).format('MMM DD, h:mm A') : 'Unknown time'}
                         </p>
                       </div>
                     </div>

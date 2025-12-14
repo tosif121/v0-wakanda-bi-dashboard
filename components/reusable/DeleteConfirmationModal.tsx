@@ -42,7 +42,7 @@ export default function DeleteConfirmationModal({
             variant="outline" 
             onClick={() => onOpenChange(false)} 
             disabled={isDeleting}
-            className="border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-slate-800"
+            className="border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-white hover:bg-gray-500 dark:hover:bg-slate-800"
           >
             Cancel
           </Button>

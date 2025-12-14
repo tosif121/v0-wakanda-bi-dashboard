@@ -29,9 +29,10 @@ import { useKestraConnectionContext } from '@/lib/kestra-connection-context'
 
 interface DataSourceSelectorProps {
   onDataProcessed?: (result: any) => void
+  clearProcessingResult?: boolean
 }
 
-export function DataSourceSelector({ onDataProcessed }: DataSourceSelectorProps) {
+export function DataSourceSelector({ onDataProcessed, clearProcessingResult }: DataSourceSelectorProps) {
   const [activeTab, setActiveTab] = useState('upload')
   const [urlInput, setUrlInput] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
@@ -53,6 +54,13 @@ export function DataSourceSelector({ onDataProcessed }: DataSourceSelectorProps)
       }
     }
   }, [])
+
+  // Clear processing result when requested
+  useEffect(() => {
+    if (clearProcessingResult) {
+      setProcessingResult(null)
+    }
+  }, [clearProcessingResult])
 
   const validateUrl = (url: string) => {
     try {
@@ -110,7 +118,7 @@ export function DataSourceSelector({ onDataProcessed }: DataSourceSelectorProps)
         if (response.ok) {
           const result = await response.json()
           setUploadUrl(result.url)
-          toast.success('File uploaded successfully!', { icon: '📁' })
+          toast.success('File uploaded successfully!')
         } else {
           setUploadError('Failed to upload file')
           toast.error('Failed to upload file')
@@ -354,7 +362,7 @@ export function DataSourceSelector({ onDataProcessed }: DataSourceSelectorProps)
                 <Label className="text-sm font-medium text-primary">Upload CSV File</Label>
                 <div
                   {...getRootProps()}
-                  className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-all ${
+                  className={`border-2 mt-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-all ${
                     isDragActive
                       ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
                       : 'border-gray-300 dark:border-gray-600 hover:border-purple-400 hover:bg-gray-50 dark:hover:bg-slate-800'
@@ -422,7 +430,7 @@ export function DataSourceSelector({ onDataProcessed }: DataSourceSelectorProps)
                     onClick={handleFileProcess}
                     disabled={isProcessing || !connection.isConnected}
                     size="sm"
-                    className={`w-full gap-1.5 h-8 text-white disabled:opacity-50 ${
+                    className={`w-full gap-1.5 h-12 text-white disabled:opacity-50 ${
                       !connection.isConnected 
                         ? 'bg-red-500 hover:bg-red-600 disabled:bg-red-400 disabled:hover:bg-red-400' 
                         : 'bg-linear-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700'

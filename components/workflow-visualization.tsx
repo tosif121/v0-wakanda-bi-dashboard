@@ -1,10 +1,11 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { WorkflowDialog } from '@/components/workflow-dialog'
 import { WorkflowPhase } from '@/components/reusable/WorkflowPhase'
+import moment from 'moment'
 import { 
   Download, 
   Database, 
@@ -14,7 +15,7 @@ import {
   Target,
   FileText,
   Upload,
-  ArrowRight
+  Sparkles
 } from 'lucide-react'
 
 interface WorkflowStep {
@@ -30,11 +31,34 @@ interface WorkflowVisualizationProps {
   currentStep?: string
   executionData?: any
   latestExecution?: any
+  onProgressClear?: () => void
 }
 
-export function WorkflowVisualization({ currentStep, executionData, latestExecution }: WorkflowVisualizationProps) {
+export function WorkflowVisualization({ latestExecution, onProgressClear }: WorkflowVisualizationProps) {
+  const [showCompletionCelebration, setShowCompletionCelebration] = useState(false)
+  const [previousExecutionId, setPreviousExecutionId] = useState<string | null>(null)
+
+  // Check for workflow completion
+  useEffect(() => {
+    if (latestExecution && latestExecution.state?.current === 'SUCCESS') {
+      const currentExecutionId = latestExecution.id
+      
+      // Only show celebration if this is a new completion
+      if (currentExecutionId !== previousExecutionId) {
+        setShowCompletionCelebration(true)
+        setPreviousExecutionId(currentExecutionId)
+        
+        // Clear celebration and progress after 6 seconds
+        setTimeout(() => {
+          setShowCompletionCelebration(false)
+          onProgressClear?.()
+        }, 6000)
+      }
+    }
+  }, [latestExecution, previousExecutionId, onProgressClear])
+
   // Determine workflow status based on latest execution
-  const getStepStatus = (stepId: string, index: number) => {
+  const getStepStatus = (_stepId: string, index: number) => {
     if (!latestExecution) return 'pending'
     
     const executionState = latestExecution.state?.current || 'CREATED'
@@ -105,23 +129,7 @@ export function WorkflowVisualization({ currentStep, executionData, latestExecut
     }
   ]
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-      case 'running': return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-      case 'failed': return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-      default: return 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400'
-    }
-  }
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'completed': return <CheckCircle className="h-4 w-4 text-emerald-500" />
-      case 'running': return <div className="h-4 w-4 rounded-full bg-blue-500 animate-pulse" />
-      case 'failed': return <div className="h-4 w-4 rounded-full bg-red-500" />
-      default: return <div className="h-4 w-4 rounded-full bg-gray-300 dark:bg-gray-600" />
-    }
-  }
 
   return (
     <Card className="transition-all duration-200 hover:shadow-lg border-gray-200 dark:border-gray-800 bg-white dark:bg-slate-900">
@@ -154,6 +162,40 @@ export function WorkflowVisualization({ currentStep, executionData, latestExecut
       </CardHeader>
       
       <CardContent>
+        {/* Completion Celebration */}
+        {showCompletionCelebration && (
+          <div className="mb-4 p-4 bg-linear-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-lg border border-purple-200 dark:border-purple-800 shadow-lg animate-in fade-in-0 slide-in-from-left-2 duration-700">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900/30 animate-bounce">
+                <Sparkles className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div>
+                <h4 className="font-semibold text-purple-800 dark:text-purple-300">
+                  🎉 Workflow Complete!
+                </h4>
+                <p className="text-sm text-purple-700 dark:text-purple-400">
+                  All steps executed successfully
+                </p>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="p-2 bg-white dark:bg-slate-800 rounded animate-in fade-in-0 duration-1000 delay-200">
+                <div className="text-lg font-bold text-purple-600 dark:text-purple-400">✓</div>
+                <div className="text-xs text-gray-600 dark:text-gray-400">Processed</div>
+              </div>
+              <div className="p-2 bg-white dark:bg-slate-800 rounded animate-in fade-in-0 duration-1000 delay-400">
+                <div className="text-lg font-bold text-purple-600 dark:text-purple-400">✓</div>
+                <div className="text-xs text-gray-600 dark:text-gray-400">Analyzed</div>
+              </div>
+              <div className="p-2 bg-white dark:bg-slate-800 rounded animate-in fade-in-0 duration-1000 delay-600">
+                <div className="text-lg font-bold text-purple-600 dark:text-purple-400">✓</div>
+                <div className="text-xs text-gray-600 dark:text-gray-400">Stored</div>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="space-y-3">
           {workflowSteps.map((step, index) => (
             <WorkflowPhase
@@ -205,7 +247,7 @@ export function WorkflowVisualization({ currentStep, executionData, latestExecut
                 <div className="flex items-center justify-between text-xs mt-1">
                   <span className="text-gray-600 dark:text-gray-400">Started:</span>
                   <span className="text-gray-900 dark:text-white">
-                    {new Date(latestExecution.startDate).toLocaleTimeString()}
+                    {moment(latestExecution.startDate).format('h:mm:ss A')}
                   </span>
                 </div>
               )}

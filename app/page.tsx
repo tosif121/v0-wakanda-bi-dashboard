@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import toast from 'react-hot-toast';
+import moment from 'moment';
 import { DashboardHeader } from '@/components/dashboard/header';
 import { StatsCards } from '@/components/dashboard/stats-cards';
 import { LatestExecution } from '@/components/dashboard/latest-execution';
@@ -22,6 +23,7 @@ import { supabase } from '@/lib/supabase';
 export default function Dashboard() {
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [workflowCleared, setWorkflowCleared] = useState(false);
   const activeIntervalsRef = useRef<Set<NodeJS.Timeout>>(new Set());
 
   // Helper function to safely calculate percentages
@@ -32,12 +34,14 @@ export default function Dashboard() {
   // Delete execution function
   const handleDeleteExecution = async (executionId: string) => {
     try {
-      // Here you would typically call an API to delete the execution
-      // For now, we'll just remove it from the local state
-      console.log('Deleting execution:', executionId);
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await fetch(`/api/executions/${encodeURIComponent(executionId)}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete execution');
+      }
       
       // Refresh data after deletion
       await fetchRealData(false, false);
@@ -47,6 +51,17 @@ export default function Dashboard() {
       console.error('Failed to delete execution:', error);
       throw error;
     }
+  };
+
+  // Handle workflow progress clearing
+  const handleProgressClear = () => {
+    console.log('Clearing workflow progress...');
+    setWorkflowCleared(true);
+    
+    // Reset the cleared state after a delay to allow new workflows
+    setTimeout(() => {
+      setWorkflowCleared(false);
+    }, 10000); // Reset after 10 seconds
   };
 
   // Rate limiting for dashboard fetches
@@ -109,9 +124,10 @@ export default function Dashboard() {
         currentLatestExecution &&
         currentLatestExecution.state?.current === 'SUCCESS' &&
         previousLatestExecution?.id !== currentLatestExecution.id &&
-        !isInitialLoad
+        !isInitialLoad &&
+        !workflowCleared
       ) {
-        toast.success('🎉 Workflow completed successfully!', {
+        toast.success('Workflow completed successfully!', {
           duration: 5000,
           style: {
             background: '#10b981',
@@ -244,11 +260,14 @@ export default function Dashboard() {
         {/* Data Input & Workflow Control */}
         <div className="grid gap-4 lg:gap-6 md:grid-cols-2 lg:grid-cols-3">
           <DataSourceSelector
+            clearProcessingResult={workflowCleared}
             onDataProcessed={(execution) => {
+              // Reset workflow cleared state for new execution
+              setWorkflowCleared(false);
+              
               // Show workflow triggered toast
               toast.success(`Workflow triggered! ID: ${execution.id?.slice(0, 8)}...`, {
                 duration: 4000,
-                icon: '🚀',
               });
 
               // Clear any existing monitoring intervals first
@@ -283,7 +302,6 @@ export default function Dashboard() {
                   activeIntervalsRef.current.delete(refreshInterval);
                   toast.dismiss('workflow-monitor');
                   toast('Workflow monitoring complete', {
-                    icon: '⏱️',
                     duration: 3000,
                   });
                 }
@@ -293,8 +311,11 @@ export default function Dashboard() {
               activeIntervalsRef.current.add(refreshInterval);
             }}
           />
-          <KestraStatus />
-          <WorkflowVisualization latestExecution={dashboardData?.latestExecution} />
+          <KestraStatus onProgressClear={handleProgressClear} />
+          <WorkflowVisualization 
+            latestExecution={workflowCleared ? null : dashboardData?.latestExecution} 
+            onProgressClear={handleProgressClear}
+          />
         </div>
 
         {/* Latest Results */}
@@ -312,7 +333,7 @@ export default function Dashboard() {
             data={
               dashboardData?.executionHistory
                 ? dashboardData.executionHistory.map((exec: any, index: number) => ({
-                    date: new Date(exec.created_at || Date.now() - index * 24 * 60 * 60 * 1000).toLocaleDateString(),
+                    date: moment(exec.created_at || Date.now() - index * 24 * 60 * 60 * 1000).format('MMM DD'),
                     executions: 1,
                     success_rate: exec.impact_score || 0,
                     avg_impact: exec.impact_score || 0,
@@ -389,7 +410,7 @@ export default function Dashboard() {
                     { metric: 'Reliability', score: 0, fullMark: 100 },
                   ],
                   timeline: dashboardData.executionHistory.slice(0, 10).map((exec: any, index: number) => ({
-                    time: new Date(exec.created_at || Date.now() - index * 60 * 60 * 1000).toLocaleTimeString(),
+                    time: moment(exec.created_at || Date.now() - index * 60 * 60 * 1000).format('h:mm A'),
                     confidence: exec.confidence || 0,
                     accuracy: 0,
                     speed: 0,

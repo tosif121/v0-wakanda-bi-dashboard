@@ -344,7 +344,7 @@ export function WorkflowDialog({ children }: WorkflowDialogProps) {
     try {
       await navigator.clipboard.writeText(WORKFLOW_CONTENT)
       setCopied(true)
-      toast.success('Workflow copied to clipboard!', { icon: '📋' })
+      toast.success('Workflow copied to clipboard!')
       setTimeout(() => setCopied(false), 2000)
     } catch (error) {
       toast.error('Failed to copy workflow')
