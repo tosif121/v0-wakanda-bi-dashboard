@@ -1,0 +1,560 @@
+name: ⚡ Performance Monitoring
+
+on:
+  schedule:
+    # Run performance tests daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch: # Allow manual trigger
+  push:
+    branches: [ main ]
+    paths:
+      - 'app/**'
+      - 'components/**'
+      - 'lib/**'
+
+jobs:
+  # 🚀 Lighthouse Performance Audit
+  lighthouse-audit:
+    name: 🚀 Lighthouse Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: '8'
+
+      - name: 📦 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🏗️ Build application
+        run: pnpm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+
+      - name: 🚀 Start application
+        run: |
+          echo "Starting application..."
+          pnpm start &
+          APP_PID=$!
+          
+          # Wait for application to be ready with extended timeout
+          echo "Waiting for application to start..."
+          timeout=120  # Increased timeout for better reliability
+          while [ $timeout -gt 0 ]; do
+            if curl -f http://localhost:3000 >/dev/null 2>&1; then
+              echo "✅ Application is ready!"
+              break
+            fi
+            echo "Waiting... ($timeout seconds remaining)"
+            sleep 3  # Slightly longer sleep intervals
+            timeout=$((timeout-3))
+          done
+          
+          if [ $timeout -le 0 ]; then
+            echo "❌ Application failed to start within 120 seconds"
+            echo "Checking application logs..."
+            ps aux | grep node || true
+            netstat -tlnp | grep :3000 || true
+            kill $APP_PID 2>/dev/null || true
+            exit 1
+          fi
+          
+          echo "APP_PID=$APP_PID" >> $GITHUB_ENV
+
+      - name: 🔍 Run Lighthouse audit
+        uses: treosh/lighthouse-ci-action@v10
+        with:
+          urls: |
+            http://localhost:3000
+            http://localhost:3000/upload
+          configPath: './.lighthouserc.json'
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+
+      - name: 📊 Generate performance report
+        run: |
+          echo "# Performance Audit Report" > performance-report.md
+          echo "" >> performance-report.md
+          echo "**Date:** $(date)" >> performance-report.md
+          echo "**Commit:** ${{ github.sha }}" >> performance-report.md
+          echo "" >> performance-report.md
+          echo "## Lighthouse Scores" >> performance-report.md
+          echo "" >> performance-report.md
+          echo "The Lighthouse audit results are available in the artifacts." >> performance-report.md
+          echo "" >> performance-report.md
+          echo "### Key Metrics to Monitor" >> performance-report.md
+          echo "- **Performance Score**: Should be > 90" >> performance-report.md
+          echo "- **Accessibility Score**: Should be > 95" >> performance-report.md
+          echo "- **Best Practices Score**: Should be > 90" >> performance-report.md
+          echo "- **SEO Score**: Should be > 90" >> performance-report.md
+          echo "" >> performance-report.md
+          echo "### Performance Optimization Tips" >> performance-report.md
+          echo "- Optimize images and use Next.js Image component" >> performance-report.md
+          echo "- Minimize JavaScript bundle size" >> performance-report.md
+          echo "- Use code splitting and lazy loading" >> performance-report.md
+          echo "- Implement proper caching strategies" >> performance-report.md
+
+      - name: 📤 Upload performance report
+        uses: actions/upload-artifact@v3
+        with:
+          name: performance-report
+          path: performance-report.md
+          retention-days: 30
+
+      - name: 🛑 Cleanup application
+        if: always()
+        run: |
+          if [ ! -z "$APP_PID" ]; then
+            echo "Stopping application (PID: $APP_PID)"
+            kill $APP_PID 2>/dev/null || true
+          fi
+
+  # 📦 Bundle Size Analysis
+  bundle-analysis:
+    name: 📦 Bundle Size Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: '8'
+
+      - name: 📦 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🏗️ Build and analyze bundle
+        run: |
+          echo "🏗️ Building application for bundle analysis..."
+          ANALYZE=true pnpm run build
+
+      - name: 📊 Bundle size analysis
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            
+            // Read build stats if available
+            let buildStats = 'Bundle analysis completed. Check build output for details.';
+            
+            try {
+              // Try to read Next.js build output
+              const buildOutput = fs.readFileSync('.next/build-manifest.json', 'utf8');
+              buildStats = `Build manifest found with ${Object.keys(JSON.parse(buildOutput).pages).length} pages`;
+            } catch (error) {
+              console.log('Build manifest not found, using default message');
+            }
+            
+            const reportBody = `
+            ## 📦 Bundle Size Analysis Report
+            
+            **Date:** ${new Date().toISOString()}
+            **Commit:** ${context.sha}
+            **Workflow Run:** ${context.runNumber}
+            
+            ### Build Statistics
+            ${buildStats}
+            
+            ### Bundle Size Recommendations
+            - Keep main bundle under 250KB gzipped
+            - Use dynamic imports for large components
+            - Optimize third-party dependencies
+            - Remove unused code and dependencies
+            
+            ### Next Steps
+            1. Review the build output above
+            2. Identify large bundles or dependencies
+            3. Implement code splitting where needed
+            4. Consider lazy loading for non-critical components
+            
+            *This report was automatically generated by GitHub Actions*
+            `;
+            
+            // Create or update issue
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: 'bundle-analysis',
+              state: 'open'
+            });
+            
+            if (issues.data.length > 0) {
+              // Update existing issue
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issues.data[0].number,
+                body: reportBody
+              });
+            } else {
+              // Create new issue
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: '📦 Bundle Size Analysis Report',
+                body: reportBody,
+                labels: ['bundle-analysis', 'performance', 'automated']
+              });
+            }
+
+  # 🧪 Load Testing (Local Environment)
+  load-testing:
+    name: 🧪 Load Testing (Safe)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' # Only manual trigger to prevent accidental production load
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: '8'
+
+      - name: 📦 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🏗️ Build application
+        run: pnpm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+
+      - name: 🚀 Start local application for testing
+        run: |
+          echo "Starting local application for load testing..."
+          pnpm start &
+          APP_PID=$!
+          
+          # Wait for application to be ready
+          timeout=60
+          while [ $timeout -gt 0 ]; do
+            if curl -f http://localhost:3000 >/dev/null 2>&1; then
+              echo "✅ Local application is ready for testing!"
+              break
+            fi
+            echo "Waiting for local app... ($timeout seconds remaining)"
+            sleep 2
+            timeout=$((timeout-2))
+          done
+          
+          if [ $timeout -le 0 ]; then
+            echo "❌ Local application failed to start"
+            kill $APP_PID 2>/dev/null || true
+            exit 1
+          fi
+          
+          echo "APP_PID=$APP_PID" >> $GITHUB_ENV
+
+      - name: 🔧 Install k6
+        run: |
+          echo "Installing k6 load testing tool using official method..."
+          set -e  # Exit on any error
+          
+          # Retry function for network operations
+          retry_command() {
+            local max_attempts=3
+            local delay=5
+            local attempt=1
+            
+            while [ $attempt -le $max_attempts ]; do
+              echo "Attempt $attempt of $max_attempts: $*"
+              if "$@"; then
+                return 0
+              fi
+              
+              if [ $attempt -lt $max_attempts ]; then
+                echo "Command failed, retrying in ${delay}s..."
+                sleep $delay
+                delay=$((delay * 2))  # Exponential backoff
+              fi
+              attempt=$((attempt + 1))
+            done
+            
+            echo "❌ Command failed after $max_attempts attempts: $*"
+            return 1
+          }
+          
+          # Use official k6 installation method with retry logic
+          echo "📥 Downloading k6 GPG key from official source..."
+          retry_command curl -fsSL https://dl.k6.io/key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/k6-archive-keyring.gpg
+          
+          # Verify GPG key was added successfully
+          if [ ! -f /usr/share/keyrings/k6-archive-keyring.gpg ]; then
+            echo "❌ k6 GPG key file not found after download"
+            exit 1
+          fi
+          
+          # Add k6 repository with proper GPG verification
+          echo "📦 Adding k6 repository..."
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          
+          # Update package list with retry
+          echo "🔄 Updating package list..."
+          retry_command sudo apt-get update -qq
+          
+          # Install k6 with retry
+          echo "⬇️ Installing k6..."
+          retry_command sudo apt-get install -y k6
+          
+          # Verify installation
+          echo "✅ Verifying k6 installation..."
+          if ! k6 version; then
+            echo "❌ k6 installation verification failed"
+            echo "Checking k6 binary location..."
+            which k6 || echo "k6 not found in PATH"
+            ls -la /usr/bin/k6 || echo "k6 binary not found in /usr/bin/"
+            exit 1
+          fi
+          
+          echo "✅ k6 installed successfully using official method"
+          k6 version
+
+      - name: 🧪 Create safe load test script
+        run: |
+          cat > load-test.js << 'EOF'
+          import http from 'k6/http';
+          import { check, sleep } from 'k6';
+          
+          export const options = {
+            stages: [
+              { duration: '30s', target: 5 },  // Gentle ramp up to 5 users
+              { duration: '1m', target: 5 },   // Stay at 5 users for 1 minute
+              { duration: '30s', target: 0 },  // Ramp down to 0 users
+            ],
+            thresholds: {
+              http_req_duration: ['p(95)<2000'], // 95% of requests should be below 2s
+              http_req_failed: ['rate<0.1'],    // Error rate should be below 10%
+            },
+          };
+          
+          // 🔒 SAFE: Testing against LOCAL instance only
+          const BASE_URL = 'http://localhost:3000';
+          
+          export default function () {
+            // Test homepage
+            let response = http.get(`${BASE_URL}/`);
+            check(response, {
+              'homepage status is 200': (r) => r.status === 200,
+              'homepage loads in reasonable time': (r) => r.timings.duration < 2000,
+            });
+            
+            sleep(1);
+            
+            // Test API health endpoint
+            response = http.get(`${BASE_URL}/api/health`);
+            check(response, {
+              'API health check works': (r) => r.status === 200,
+              'API responds quickly': (r) => r.timings.duration < 1000,
+            });
+            
+            sleep(2); // Longer sleep to be gentle on local resources
+          }
+          EOF
+
+      - name: 🚀 Run safe load test
+        run: |
+          echo "🚀 Running SAFE load test against LOCAL instance..."
+          echo "⚠️  This test runs against localhost:3000 only - NO production impact!"
+          k6 run load-test.js --out json=load-test-results.json
+
+      - name: 🛑 Cleanup local application
+        if: always()
+        run: |
+          if [ ! -z "$APP_PID" ]; then
+            echo "Stopping local application (PID: $APP_PID)"
+            kill $APP_PID 2>/dev/null || true
+          fi
+
+      - name: 📊 Process load test results
+        run: |
+          echo "📊 Processing load test results..."
+          
+          # Create a summary report
+          cat > load-test-report.md << 'EOF'
+          # Safe Load Test Report
+          
+          **Date:** $(date)
+          **Target:** localhost:3000 (LOCAL TESTING ONLY)
+          **Test Duration:** 2 minutes
+          **Max Concurrent Users:** 5 (gentle testing)
+          
+          ## Test Results
+          
+          This load test was run against a LOCAL instance to safely verify application performance.
+          
+          ### Key Metrics
+          - Response time (95th percentile): Should be < 2 seconds
+          - Error rate: Should be < 10%
+          - Throughput: Requests per second handled
+          
+          ### Test Scenarios
+          1. Homepage loading performance
+          2. API health endpoint responsiveness
+          3. Concurrent user handling (limited to 5 users)
+          
+          ### Safety Note
+          ✅ This test runs against localhost only - NO production impact!
+          
+          See attached JSON results for detailed metrics.
+          
+          *This report was automatically generated by GitHub Actions*
+          EOF
+
+      - name: 📤 Upload load test results
+        uses: actions/upload-artifact@v3
+        with:
+          name: load-test-results
+          path: |
+            load-test-results.json
+            load-test-report.md
+          retention-days: 30
+
+      - name: 🚨 Alert on performance degradation
+        if: failure()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const issueBody = `
+            ## 🚨 Local Load Test Performance Alert
+            
+            **Date:** ${new Date().toISOString()}
+            **Workflow:** ${context.workflow}
+            **Run:** ${context.runNumber}
+            **Test Type:** Local Environment Load Test
+            
+            ### Issue
+            The local load test has detected performance issues or failures.
+            
+            ### Possible Causes
+            - Code changes affecting performance
+            - Build optimization issues
+            - Resource constraints in test environment
+            - Application startup problems
+            
+            ### Recommended Actions
+            1. Review the load test results in the artifacts
+            2. Check recent code changes for performance impact
+            3. Run local performance profiling
+            4. Consider optimizing critical paths
+            
+            ### Note
+            This was a SAFE test against localhost - no production impact.
+            
+            ### Auto-generated by GitHub Actions
+            This alert was automatically created by the performance monitoring workflow.
+            `;
+            
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🚨 Local Performance Test Alert - ${new Date().toISOString().split('T')[0]}`,
+              body: issueBody,
+              labels: ['performance', 'local-testing', 'automated']
+            });
+
+  # 🏥 Gentle Production Health Check
+  production-health-check:
+    name: 🏥 Gentle Production Health Check
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' # Only run on schedule, not on every push
+    steps:
+      - name: 🌐 Gentle production health check
+        run: |
+          echo "🌐 Performing gentle health check on production..."
+          
+          # Use environment variable or default to avoid hardcoding
+          PROD_URL="${{ vars.PRODUCTION_URL || 'https://v0-wakanda-bi-dashboard.vercel.app' }}"
+          
+          # ⚠️ SAFETY: Single request only - NO load testing on production
+          echo "🔒 SAFETY CHECK: Single gentle request to: $PROD_URL"
+          echo "⚠️  This is NOT a load test - just a health check"
+          
+          # Basic availability check with user-agent to identify as monitoring
+          if curl -f -s --max-time 10 \
+             -H "User-Agent: GitHub-Actions-Health-Check/1.0" \
+             "$PROD_URL" > /dev/null; then
+            echo "✅ Production site is accessible"
+            SITE_STATUS="healthy"
+          else
+            echo "❌ Production site is not accessible"
+            SITE_STATUS="unhealthy"
+          fi
+          
+          # API health check (single request with proper headers)
+          if curl -f -s --max-time 5 \
+             -H "User-Agent: GitHub-Actions-Health-Check/1.0" \
+             "$PROD_URL/api/health" > /dev/null; then
+            echo "✅ API health endpoint is responding"
+            API_STATUS="healthy"
+          else
+            echo "⚠️ API health endpoint not responding"
+            API_STATUS="unknown"
+          fi
+          
+          # Store results for next step
+          echo "SITE_STATUS=$SITE_STATUS" >> $GITHUB_ENV
+          echo "API_STATUS=$API_STATUS" >> $GITHUB_ENV
+          
+          echo "🔒 Health check completed safely - no load impact"
+
+      - name: 🚨 Create health alert if needed
+        if: env.SITE_STATUS == 'unhealthy'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const issueBody = `
+            ## 🚨 Production Health Check Alert
+            
+            **Date:** ${new Date().toISOString()}
+            **Workflow:** ${context.workflow}
+            **Run:** ${context.runNumber}
+            **Check Type:** Gentle Health Check (Single Request)
+            
+            ### Issue
+            The production deployment health check has failed.
+            
+            ### Status
+            - **Site Accessibility:** ${process.env.SITE_STATUS}
+            - **API Health:** ${process.env.API_STATUS}
+            
+            ### Recommended Actions
+            1. Check Vercel deployment status
+            2. Review recent deployments for issues
+            3. Check application logs in Vercel dashboard
+            4. Verify DNS and CDN status
+            
+            ### Note
+            This was a gentle single-request health check - no load impact.
+            
+            ### Auto-generated by GitHub Actions
+            This alert was automatically created by the health monitoring workflow.
+            `;
+            
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🚨 Production Health Alert - ${new Date().toISOString().split('T')[0]}`,
+              body: issueBody,
+              labels: ['production', 'health-check', 'urgent', 'automated']
+            });

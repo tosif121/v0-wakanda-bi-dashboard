@@ -1,0 +1,67 @@
+# 🚀 Kestra Configuration for Railway Deployment
+kestra:
+  # Server configuration
+  server:
+    port: ${PORT:8080}
+    host: "0.0.0.0"
+    access-log:
+      enabled: true
+      format: "combined"
+  
+  # Micronaut server configuration for Railway
+  micronaut:
+    server:
+      port: ${PORT:8080}
+      host: "0.0.0.0"
+    
+  # Repository configuration (in-memory for Railway)
+  repository:
+    type: memory
+    
+  # Queue configuration
+  queue:
+    type: memory
+    
+  # Storage configuration (local filesystem)
+  storage:
+    type: local
+    local:
+      base-path: /app/storage
+      
+  # Database configuration (H2 for simplicity on Railway)
+  datasources:
+    postgres:
+      url: jdbc:h2:mem:kestra;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+      driverClassName: org.h2.Driver
+      username: sa
+      password: ""
+      
+  # Security configuration
+  security:
+    type: basic
+    basic:
+      enabled: false  # Disable for Railway deployment
+      
+  # Plugins configuration
+  plugins:
+    repositories:
+      central:
+        url: https://repo1.maven.org/maven2/
+      kestra:
+        url: https://dl.bintray.com/kestra-io/maven
+        
+  # Logging configuration
+  logging:
+    level:
+      io.kestra: INFO
+      root: WARN
+      
+  # Metrics configuration
+  metrics:
+    enabled: true
+    
+  # Variables (can be overridden by Railway environment variables)
+  variables:
+    perplexity_api_key: "${PERPLEXITY_API_KEY}"
+    supabase_url: "${SUPABASE_URL}"
+    supabase_key: "${SUPABASE_KEY}"

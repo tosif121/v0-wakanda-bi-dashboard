@@ -1,0 +1,205 @@
+name: 🔄 Kestra Workflow Validation
+
+on:
+  push:
+    paths:
+      - 'flows/**/*.yml'
+      - 'flows/**/*.yaml'
+  pull_request:
+    paths:
+      - 'flows/**/*.yml'
+      - 'flows/**/*.yaml'
+
+jobs:
+  # 🔍 Validate Kestra Workflows
+  validate-workflows:
+    name: 🔍 Validate Kestra Workflows
+    runs-on: ubuntu-latest
+    
+    services:
+      kestra:
+        image: kestra/kestra:latest
+        ports:
+          - 8080:8080
+        options: >-
+          --health-cmd "curl -f http://localhost:8080/health || exit 1"
+          --health-interval 30s
+          --health-timeout 10s
+          --health-retries 5
+        env:
+          KESTRA_CONFIGURATION: |
+            kestra:
+              server:
+                access-log:
+                  enabled: false
+              repository:
+                type: memory
+              queue:
+                type: memory
+              storage:
+                type: local
+                local:
+                  base-path: /tmp/kestra-storage
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: ⏳ Wait for Kestra to be ready
+        run: |
+          echo "Waiting for Kestra to be ready..."
+          timeout 300 bash -c 'until curl -f http://localhost:8080/health; do sleep 5; done'
+          echo "Kestra is ready!"
+
+      - name: 🔍 Validate workflow syntax
+        run: |
+          echo "🔍 Validating Kestra workflow files..."
+          
+          # Find all YAML files in flows directory
+          find flows/ -name "*.yml" -o -name "*.yaml" | while read -r file; do
+            echo "Validating: $file"
+            
+            # Basic YAML syntax validation
+            if ! python3 -c "import yaml; yaml.safe_load(open('$file'))" 2>/dev/null; then
+              echo "❌ YAML syntax error in $file"
+              exit 1
+            fi
+            
+            # Kestra-specific validation via API
+            if ! curl -s -X POST \
+              -H "Content-Type: application/x-yaml" \
+              --data-binary "@$file" \
+              "http://localhost:8080/api/v1/flows/validate" | grep -q '"valid":true'; then
+              echo "❌ Kestra validation failed for $file"
+              curl -s -X POST \
+                -H "Content-Type: application/x-yaml" \
+                --data-binary "@$file" \
+                "http://localhost:8080/api/v1/flows/validate"
+              exit 1
+            fi
+            
+            echo "✅ $file is valid"
+          done
+
+      - name: 🧪 Test workflow deployment
+        run: |
+          echo "🧪 Testing workflow deployment..."
+          
+          find flows/ -name "*.yml" -o -name "*.yaml" | while read -r file; do
+            echo "Testing deployment: $file"
+            
+            # Extract namespace and flow ID from the workflow file
+            namespace=$(python3 -c "
+            import yaml
+            with open('$file') as f:
+                flow = yaml.safe_load(f)
+                print(flow.get('namespace', 'default'))
+            ")
+            
+            flow_id=$(python3 -c "
+            import yaml
+            with open('$file') as f:
+                flow = yaml.safe_load(f)
+                print(flow.get('id', 'unknown'))
+            ")
+            
+            echo "Namespace: $namespace, Flow ID: $flow_id"
+            
+            # Create namespace if it doesn't exist
+            curl -s -X POST \
+              -H "Content-Type: application/json" \
+              -d "{\"namespace\":\"$namespace\"}" \
+              "http://localhost:8080/api/v1/namespaces" || true
+            
+            # Deploy the workflow
+            response=$(curl -s -X POST \
+              -H "Content-Type: application/x-yaml" \
+              --data-binary "@$file" \
+              "http://localhost:8080/api/v1/flows")
+            
+            if echo "$response" | grep -q "error"; then
+              echo "❌ Failed to deploy $file"
+              echo "$response"
+              exit 1
+            fi
+            
+            echo "✅ Successfully deployed $file"
+            
+            # Verify the flow exists
+            if ! curl -s "http://localhost:8080/api/v1/flows/$namespace/$flow_id" | grep -q "\"id\":\"$flow_id\""; then
+              echo "❌ Flow $flow_id not found after deployment"
+              exit 1
+            fi
+            
+            echo "✅ Flow $flow_id verified in Kestra"
+          done
+
+      - name: 📊 Generate workflow report
+        run: |
+          echo "📊 Generating workflow validation report..."
+          
+          echo "# Kestra Workflow Validation Report" > workflow-report.md
+          echo "" >> workflow-report.md
+          echo "**Validation Date:** $(date)" >> workflow-report.md
+          echo "**Commit:** ${{ github.sha }}" >> workflow-report.md
+          echo "" >> workflow-report.md
+          
+          echo "## Validated Workflows" >> workflow-report.md
+          echo "" >> workflow-report.md
+          
+          find flows/ -name "*.yml" -o -name "*.yaml" | while read -r file; do
+            namespace=$(python3 -c "
+            import yaml
+            with open('$file') as f:
+                flow = yaml.safe_load(f)
+                print(flow.get('namespace', 'default'))
+            ")
+            
+            flow_id=$(python3 -c "
+            import yaml
+            with open('$file') as f:
+                flow = yaml.safe_load(f)
+                print(flow.get('id', 'unknown'))
+            ")
+            
+            description=$(python3 -c "
+            import yaml
+            with open('$file') as f:
+                flow = yaml.safe_load(f)
+                print(flow.get('description', 'No description'))
+            ")
+            
+            echo "- **$file**" >> workflow-report.md
+            echo "  - Namespace: \`$namespace\`" >> workflow-report.md
+            echo "  - Flow ID: \`$flow_id\`" >> workflow-report.md
+            echo "  - Description: $description" >> workflow-report.md
+            echo "" >> workflow-report.md
+          done
+          
+          echo "## Validation Status" >> workflow-report.md
+          echo "" >> workflow-report.md
+          echo "✅ All workflows passed validation" >> workflow-report.md
+          echo "✅ All workflows deployed successfully" >> workflow-report.md
+          echo "✅ All workflows verified in Kestra instance" >> workflow-report.md
+
+      - name: 📤 Upload workflow report
+        uses: actions/upload-artifact@v3
+        with:
+          name: workflow-validation-report
+          path: workflow-report.md
+          retention-days: 30
+
+      - name: 💬 Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('workflow-report.md', 'utf8');
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## 🔄 Kestra Workflow Validation Results\n\n${report}`
+            });

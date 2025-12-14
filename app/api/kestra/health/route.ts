@@ -6,22 +6,8 @@ export async function GET() {
     const username = process.env.KESTRA_USERNAME
     const password = process.env.KESTRA_PASSWORD
     
-    if (!username || !password) {
-      return NextResponse.json({
-        kestra: {
-          url: kestraUrl,
-          healthy: false,
-          error: 'Missing Kestra credentials (KESTRA_USERNAME or KESTRA_PASSWORD)'
-        },
-        environment: {
-          namespace: process.env.KESTRA_NAMESPACE,
-          flowId: process.env.KESTRA_FLOW_ID
-        }
-      })
-    }
-
-    // Basic Authentication
-    const auth = Buffer.from(`${username}:${password}`).toString('base64')
+    // Prepare authentication if available
+    const auth = (username && password) ? Buffer.from(`${username}:${password}`).toString('base64') : null
 
     // Try multiple health endpoints
     const endpoints = [
@@ -39,13 +25,15 @@ export async function GET() {
       try {
         console.log(`Testing Kestra endpoint: ${endpoint}`)
         
+        const headers = {
+          'Content-Type': 'application/json',
+          ...(auth && { 'Authorization': `Basic ${auth}` })
+        }
+
         const response = await fetch(endpoint, {
           method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Basic ${auth}`,
-          },
-          timeout: 5000
+          headers,
+          signal: AbortSignal.timeout(5000)
         })
 
         responseDetails.push({
