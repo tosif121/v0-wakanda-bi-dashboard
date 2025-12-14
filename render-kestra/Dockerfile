@@ -1,5 +1,11 @@
 # 🚀 Kestra on Render - Production Ready
+# This is the KESTRA Dockerfile, not the Next.js one!
 FROM kestra/kestra:latest
+
+# Verify we're building the correct Dockerfile
+RUN echo "🚀 BUILDING KESTRA CONTAINER - NOT NEXT.JS!" && \
+    echo "Base image: kestra/kestra:latest" && \
+    echo "This should NOT show Node.js version errors!"
 
 # Set environment variables for Render
 ENV KESTRA_SERVER_PORT=10000

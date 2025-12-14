@@ -2,7 +2,7 @@ services:
   - type: web
     name: kestra-wakanda-bi
     env: docker
-    dockerfilePath: ./render-kestra/Dockerfile
+    dockerfilePath: ./Dockerfile
     rootDir: render-kestra
     plan: free
     region: oregon
