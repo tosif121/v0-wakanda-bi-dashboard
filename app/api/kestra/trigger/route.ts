@@ -26,12 +26,24 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Basic Authentication
+    // Check if Kestra is available first
+    const healthResponse = await fetch(`${kestraUrl}/health`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(5000)
+    }).catch(() => null)
+
+    if (!healthResponse || !healthResponse.ok) {
+      return NextResponse.json(
+        { error: 'Kestra server is not available. Please ensure Kestra is running.' },
+        { status: 503 }
+      )
+    }
+
+    // Prepare authentication if available
     const username = process.env.KESTRA_USERNAME
     const password = process.env.KESTRA_PASSWORD
-    const auth = Buffer.from(`${username}:${password}`).toString('base64')
-
-
+    const auth = (username && password) ? Buffer.from(`${username}:${password}`).toString('base64') : null
 
     // Kestra expects multipart/form-data
     const formData = new FormData()
@@ -41,15 +53,18 @@ export async function POST(request: NextRequest) {
       formData.append(key, String(value))
     })
 
+    const headers = {
+      'Accept': 'application/json',
+      ...(auth && { 'Authorization': `Basic ${auth}` })
+    }
+
     const response = await fetch(
-      `${kestraUrl}/api/v1/main/executions/${namespace}/${flowId}`,
+      `${kestraUrl}/api/v1/executions/${namespace}/${flowId}`,
       {
         method: 'POST',
-        headers: {
-          'Authorization': `Basic ${auth}`,
-          'Accept': 'application/json',
-        },
-        body: formData
+        headers,
+        body: formData,
+        signal: AbortSignal.timeout(30000) // 30 second timeout
       }
     )
 
