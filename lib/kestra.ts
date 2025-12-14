@@ -79,7 +79,19 @@ export async function getExecutionStatus(executionId: string) {
 }
 
 // ✅ List recent executions via Next.js API
+// Rate limiting for executions list
+let lastExecutionsCheck = 0
+const EXECUTIONS_CHECK_COOLDOWN = 2000 // 2 seconds minimum between checks
+
 export async function listRecentExecutions(limit = 10) {
+  // Rate limiting: prevent too frequent execution checks
+  const now = Date.now()
+  if (now - lastExecutionsCheck < EXECUTIONS_CHECK_COOLDOWN) {
+    console.log('Executions list rate limited, skipping request')
+    return []
+  }
+  lastExecutionsCheck = now
+
   try {
     const response = await fetch(`/api/kestra/executions?limit=${limit}`, {
       signal: AbortSignal.timeout(5000) // 5 second timeout
@@ -109,8 +121,30 @@ export async function listRecentExecutions(limit = 10) {
   }
 }
 
+// Rate limiting for health checks
+let lastHealthCheck = 0
+const HEALTH_CHECK_COOLDOWN = 2000 // 2 seconds minimum between checks
+
 // ✅ Check Kestra health via Next.js API
 export async function checkKestraHealth() {
+  // Rate limiting: prevent too frequent health checks
+  const now = Date.now()
+  if (now - lastHealthCheck < HEALTH_CHECK_COOLDOWN) {
+    console.log('Health check rate limited, using cached result')
+    return {
+      kestra: {
+        healthy: false,
+        error: 'Rate limited - too many health checks',
+        status: 'rate-limited'
+      },
+      environment: {
+        namespace: 'Unknown',
+        flowId: 'Unknown'
+      }
+    };
+  }
+  lastHealthCheck = now
+
   try {
     const response = await fetch('/api/kestra/health', {
       signal: AbortSignal.timeout(5000) // 5 second timeout

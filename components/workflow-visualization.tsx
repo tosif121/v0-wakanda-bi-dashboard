@@ -216,7 +216,7 @@ export function WorkflowVisualization({ currentStep, executionData, latestExecut
             <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between text-xs">
                 <span className="text-gray-600 dark:text-gray-400">Latest Execution:</span>
-                <span className="font-mono text-gray-900 dark:text-white">
+                <span className="text-gray-900 dark:text-white">
                   {latestExecution.id?.slice(0, 8)}...
                 </span>
               </div>

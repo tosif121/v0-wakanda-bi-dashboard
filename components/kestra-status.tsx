@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -19,7 +19,7 @@ import {
   WifiOff
 } from 'lucide-react'
 import { getExecutionStatus, listRecentExecutions, type KestraExecution } from '@/lib/kestra'
-import { useKestraConnection } from '@/lib/use-kestra-connection'
+import { useKestraConnectionContext } from '@/lib/kestra-connection-context'
 
 interface KestraStatusProps {
   executionId?: string
@@ -32,7 +32,7 @@ export function KestraStatus({ executionId, onExecutionComplete }: KestraStatusP
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   
-  const connection = useKestraConnection()
+  const connection = useKestraConnectionContext()
 
   const fetchExecutionStatus = async (id: string) => {
     try {
@@ -47,12 +47,24 @@ export function KestraStatus({ executionId, onExecutionComplete }: KestraStatusP
     }
   }
 
+  // Rate limiting for executions fetch
+  const lastExecutionsFetchRef = useRef(0)
+  const EXECUTIONS_FETCH_COOLDOWN = 3000 // 3 seconds minimum between fetches
+
   const fetchRecentExecutions = async () => {
     // Only fetch if connected
     if (!connection.canMakeApiCalls) {
       console.log('Skipping executions fetch - Kestra server not connected')
       return
     }
+
+    // Rate limiting
+    const now = Date.now()
+    if (now - lastExecutionsFetchRef.current < EXECUTIONS_FETCH_COOLDOWN) {
+      console.log('Executions fetch rate limited in component')
+      return
+    }
+    lastExecutionsFetchRef.current = now
     
     setLoading(true)
     try {
@@ -78,12 +90,12 @@ export function KestraStatus({ executionId, onExecutionComplete }: KestraStatusP
     if (executionId && connection.canMakeApiCalls) {
       fetchExecutionStatus(executionId)
       
-      // Poll for updates if execution is running and connected
+      // Poll for updates if execution is running and connected (less aggressive)
       const interval = setInterval(() => {
         if (connection.canMakeApiCalls) {
           fetchExecutionStatus(executionId)
         }
-      }, 3000)
+      }, 5000) // Increased to 5 seconds
 
       return () => clearInterval(interval)
     }
@@ -235,7 +247,7 @@ export function KestraStatus({ executionId, onExecutionComplete }: KestraStatusP
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   {getStatusIcon(execution.state.current)}
-                  <span className="font-mono text-sm text-gray-900 dark:text-white">
+                  <span className="text-sm text-gray-900 dark:text-white">
                     {execution.id}
                   </span>
                 </div>
@@ -310,7 +322,7 @@ export function KestraStatus({ executionId, onExecutionComplete }: KestraStatusP
                   <div className="flex items-center gap-3">
                     {getStatusIcon(exec.state.current)}
                     <div>
-                      <p className="font-mono text-xs text-gray-900 dark:text-white">
+                      <p className="text-xs text-gray-900 dark:text-white">
                         {exec.id.substring(0, 12)}...
                       </p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">

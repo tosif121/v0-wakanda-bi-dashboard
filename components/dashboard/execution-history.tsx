@@ -92,7 +92,7 @@ export function ExecutionHistory({ executions = [] }: ExecutionHistoryProps) {
                     key={exec.id || index} 
                     className="cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-slate-800/50 border-gray-200 dark:border-gray-700"
                   >
-                    <TableCell className="font-mono text-xs text-gray-900 dark:text-white">
+                    <TableCell className="text-xs text-gray-900 dark:text-white">
                       {exec.id}
                     </TableCell>
                     <TableCell>

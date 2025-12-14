@@ -85,7 +85,7 @@ export function LatestExecution({ execution }: LatestExecutionProps) {
           <div className="flex items-center gap-3">
             <Hash className="h-4 w-4 text-gray-500 dark:text-gray-400" />
             <span className="text-gray-600 dark:text-gray-400">Execution ID:</span>
-            <span className="font-mono font-medium text-gray-900 dark:text-white">{execution.id}</span>
+            <span className="font-medium text-gray-900 dark:text-white">{execution.id}</span>
           </div>
           <div className="flex items-center gap-3">
             <Clock className="h-4 w-4 text-gray-500 dark:text-gray-400" />

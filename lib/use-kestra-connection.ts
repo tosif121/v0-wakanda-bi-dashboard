@@ -24,27 +24,37 @@ export function useKestraConnection() {
   })
   
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const isMountedRef = useRef(true)
 
   const checkConnection = useCallback(async () => {
-    // Prevent multiple simultaneous checks
-    if (state.isChecking) {
-      return state.isConnected
+    // Check if component is still mounted
+    if (!isMountedRef.current) {
+      return false
     }
     
-    setState(prev => ({ ...prev, isChecking: true }))
+    setState(prev => {
+      // Prevent multiple simultaneous checks
+      if (prev.isChecking) {
+        return prev
+      }
+      return { ...prev, isChecking: true }
+    })
     
     try {
       const health = await checkKestraHealth()
       const isHealthy = health.kestra.healthy
       
-      setState(prev => ({
-        ...prev,
-        isConnected: isHealthy,
-        isChecking: false,
-        lastChecked: new Date(),
-        error: isHealthy ? null : (health.kestra.error || 'Connection failed'),
-        retryCount: isHealthy ? 0 : prev.retryCount
-      }))
+      // Only update state if component is still mounted
+      if (isMountedRef.current) {
+        setState(prev => ({
+          ...prev,
+          isConnected: isHealthy,
+          isChecking: false,
+          lastChecked: new Date(),
+          error: isHealthy ? null : (health.kestra.error || 'Connection failed'),
+          retryCount: isHealthy ? 0 : prev.retryCount
+        }))
+      }
       
       return isHealthy
     } catch (error: unknown) {
@@ -62,41 +72,48 @@ export function useKestraConnection() {
         }
       }
       
-      setState(prev => ({
-        ...prev,
-        isConnected: false,
-        isChecking: false,
-        lastChecked: new Date(),
-        error: errorMessage,
-        retryCount: prev.retryCount
-      }))
+      // Only update state if component is still mounted
+      if (isMountedRef.current) {
+        setState(prev => ({
+          ...prev,
+          isConnected: false,
+          isChecking: false,
+          lastChecked: new Date(),
+          error: errorMessage,
+          retryCount: prev.retryCount
+        }))
+      }
       
       return false
     }
-  }, [state.isChecking, state.isConnected])
+  }, []) // Remove dependencies to prevent infinite re-creation
 
   // Auto-retry when disconnected
   useEffect(() => {
+    // Don't run if component is unmounted
+    if (!isMountedRef.current) {
+      return
+    }
+
     // Clear any existing timeout
     if (retryTimeoutRef.current) {
       clearTimeout(retryTimeoutRef.current)
       retryTimeoutRef.current = null
     }
 
-    // Schedule retry if disconnected and not checking and haven't exceeded max retries
+    // Only schedule retry if we've checked at least once and are disconnected
     if (!state.isConnected && !state.isChecking && state.retryCount < MAX_RETRIES && state.lastChecked !== null) {
       const newRetryCount = state.retryCount + 1
       const retryInterval = RETRY_INTERVALS[newRetryCount - 1] || RETRY_INTERVALS[RETRY_INTERVALS.length - 1]
       
-      // Update retry count first
-      setState(prev => ({
-        ...prev,
-        retryCount: newRetryCount
-      }))
+      console.log(`Scheduling Kestra retry ${newRetryCount}/${MAX_RETRIES} in ${retryInterval}ms`)
       
       // Schedule the retry
       retryTimeoutRef.current = setTimeout(() => {
-        checkConnection()
+        if (isMountedRef.current) {
+          setState(prev => ({ ...prev, retryCount: newRetryCount }))
+          checkConnection()
+        }
       }, retryInterval)
     }
 
@@ -107,12 +124,24 @@ export function useKestraConnection() {
         retryTimeoutRef.current = null
       }
     }
-  }, [state.isConnected, state.isChecking, state.retryCount, state.lastChecked, checkConnection])
+  }, [state.isConnected, state.isChecking, state.retryCount, state.lastChecked]) // Remove checkConnection from deps
 
-  // Initial connection check
+  // Initial connection check (only once)
   useEffect(() => {
+    console.log('Kestra connection hook: Initial check')
     checkConnection()
-  }, [checkConnection])
+  }, []) // Empty dependency array for initial check only
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current)
+        retryTimeoutRef.current = null
+      }
+    }
+  }, [])
 
   return {
     ...state,

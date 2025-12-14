@@ -2,10 +2,10 @@
 
 import { AlertTriangle, ExternalLink, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { useKestraConnection } from '@/lib/use-kestra-connection'
+import { useKestraConnectionContext } from '@/lib/kestra-connection-context'
 
 export function KestraOfflineBanner() {
-  const connection = useKestraConnection()
+  const connection = useKestraConnectionContext()
 
   // Don't show banner if connected or still checking initially
   if (connection.isConnected || (connection.lastChecked === null && connection.isChecking)) {

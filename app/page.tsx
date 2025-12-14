@@ -29,8 +29,20 @@ export default function Dashboard() {
     return total > 0 ? Math.round((count / total) * 100) : 0;
   };
 
+  // Rate limiting for dashboard fetches
+  const lastFetchRef = useRef(0)
+  const FETCH_COOLDOWN = 1000 // 1 second minimum between fetches
+
   // Direct data fetching function
   const fetchRealData = useCallback(async (isInitialLoad = false, showToast = false) => {
+    // Rate limiting: prevent too frequent fetches
+    const now = Date.now()
+    if (!isInitialLoad && now - lastFetchRef.current < FETCH_COOLDOWN) {
+      console.log('Dashboard fetch rate limited')
+      return
+    }
+    lastFetchRef.current = now
+
     if (isInitialLoad) {
       setLoading(true);
     } else if (showToast) {
@@ -151,19 +163,34 @@ export default function Dashboard() {
     if (urlParams.get('refresh') === 'true') {
       // Remove the refresh param from URL
       window.history.replaceState({}, '', window.location.pathname);
-      // Refresh data every 2 seconds for 30 seconds to catch new data
+      
+      // Clear any existing intervals first
+      activeIntervalsRef.current.forEach(interval => clearInterval(interval));
+      activeIntervalsRef.current.clear();
+      
+      // Refresh data every 5 seconds for 30 seconds to catch new data (reduced frequency)
       let refreshCount = 0;
+      console.log('Starting URL refresh monitoring');
       const refreshInterval = setInterval(() => {
         refreshCount++;
+        console.log(`URL refresh ${refreshCount}/6`);
         fetchRealData(false);
-        if (refreshCount >= 15) {
+        if (refreshCount >= 6) { // 6 * 5 seconds = 30 seconds total
           clearInterval(refreshInterval);
+          activeIntervalsRef.current.delete(refreshInterval);
+          console.log('URL refresh monitoring complete');
         }
-      }, 2000);
+      }, 5000); // Increased to 5 seconds
 
-      return () => clearInterval(refreshInterval);
+      // Track the interval for cleanup
+      activeIntervalsRef.current.add(refreshInterval);
+
+      return () => {
+        clearInterval(refreshInterval);
+        activeIntervalsRef.current.delete(refreshInterval);
+      };
     }
-  }, [fetchRealData]);
+  }, []);
 
   // Cleanup all active intervals on unmount
   useEffect(() => {
@@ -204,10 +231,16 @@ export default function Dashboard() {
                 icon: '🚀',
               });
 
+              // Clear any existing monitoring intervals first
+              activeIntervalsRef.current.forEach(interval => {
+                clearInterval(interval);
+              });
+              activeIntervalsRef.current.clear();
+
               // Immediately refresh dashboard data when new execution is triggered
               fetchRealData(false, false);
 
-              // Set up periodic refresh to catch workflow progress
+              // Set up periodic refresh to catch workflow progress (only if not already monitoring)
               let refreshCount = 0;
               toast.loading('Monitoring workflow progress...', {
                 duration: Infinity,
@@ -216,14 +249,15 @@ export default function Dashboard() {
 
               const refreshInterval = setInterval(() => {
                 refreshCount++;
+                console.log(`Dashboard refresh ${refreshCount}/15 for workflow monitoring`);
                 fetchRealData(false, false);
 
                 // Update monitoring toast with progress
-                toast.loading(`Monitoring workflow... (${refreshCount * 2}s)`, {
+                toast.loading(`Monitoring workflow... (${refreshCount * 3}s)`, {
                   id: 'workflow-monitor',
                 });
 
-                // Stop refreshing after 30 seconds (15 intervals * 2 seconds)
+                // Stop refreshing after 45 seconds (15 intervals * 3 seconds) - increased interval
                 if (refreshCount >= 15) {
                   clearInterval(refreshInterval);
                   activeIntervalsRef.current.delete(refreshInterval);
@@ -233,7 +267,7 @@ export default function Dashboard() {
                     duration: 3000,
                   });
                 }
-              }, 2000);
+              }, 3000); // Increased to 3 seconds to reduce API calls
 
               // Track the interval for cleanup
               activeIntervalsRef.current.add(refreshInterval);

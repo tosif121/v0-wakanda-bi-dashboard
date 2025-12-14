@@ -23,7 +23,7 @@ import {
 } from 'lucide-react'
 
 import { triggerWakandaWorkflow } from '@/lib/kestra'
-import { useKestraConnection } from '@/lib/use-kestra-connection'
+import { useKestraConnectionContext } from '@/lib/kestra-connection-context'
 
 interface DataSourceSelectorProps {
   onDataProcessed?: (result: any) => void
@@ -39,7 +39,7 @@ export function DataSourceSelector({ onDataProcessed }: DataSourceSelectorProps)
   const [uploadUrl, setUploadUrl] = useState<string | null>(null)
   const [uploadError, setUploadError] = useState('')
   
-  const connection = useKestraConnection()
+  const connection = useKestraConnectionContext()
 
   const validateUrl = (url: string) => {
     try {
