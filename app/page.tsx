@@ -16,6 +16,7 @@ import { DataSourceSelector } from '@/components/data-source-selector';
 import { KestraStatus } from '@/components/kestra-status';
 import { WorkflowVisualization } from '@/components/workflow-visualization';
 import { DashboardSkeleton } from '@/components/dashboard/skeleton-loader';
+import { KestraOfflineBanner } from '@/components/kestra-offline-banner';
 import { supabase } from '@/lib/supabase';
 
 export default function Dashboard() {
@@ -168,6 +169,9 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-950 transition-colors duration-200">
+      {/* Kestra Offline Banner */}
+      <KestraOfflineBanner />
+      
       <div className="container mx-auto space-y-6 p-4 md:p-6 lg:p-8">
         {/* Header */}
         <DashboardHeader onRefresh={() => fetchRealData(false, true)} dashboardData={dashboardData} />

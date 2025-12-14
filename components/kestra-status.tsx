@@ -13,9 +13,13 @@ import {
   ExternalLink,
   RefreshCw,
   Loader2,
-  Activity
+  Activity,
+  AlertTriangle,
+  Wifi,
+  WifiOff
 } from 'lucide-react'
-import { getExecutionStatus, listRecentExecutions, checkKestraHealth, type KestraExecution } from '@/lib/kestra'
+import { getExecutionStatus, listRecentExecutions, type KestraExecution } from '@/lib/kestra'
+import { useKestraConnection } from '@/lib/use-kestra-connection'
 
 interface KestraStatusProps {
   executionId?: string
@@ -27,8 +31,8 @@ export function KestraStatus({ executionId, onExecutionComplete }: KestraStatusP
   const [recentExecutions, setRecentExecutions] = useState<KestraExecution[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [healthStatus, setHealthStatus] = useState<any>(null)
-  const [healthLoading, setHealthLoading] = useState(false)
+  
+  const connection = useKestraConnection()
 
   const fetchExecutionStatus = async (id: string) => {
     try {
@@ -44,48 +48,46 @@ export function KestraStatus({ executionId, onExecutionComplete }: KestraStatusP
   }
 
   const fetchRecentExecutions = async () => {
+    // Only fetch if connected
+    if (!connection.canMakeApiCalls) {
+      console.log('Skipping executions fetch - Kestra server not connected')
+      return
+    }
+    
     setLoading(true)
     try {
       const executions = await listRecentExecutions(5)
       setRecentExecutions(executions)
       setError('') // Clear error on success
     } catch (err) {
-      setError('Failed to fetch recent executions')
+      console.warn('Failed to fetch recent executions:', err)
+      setRecentExecutions([]) // Set empty array instead of error
     } finally {
       setLoading(false)
     }
   }
 
-  const fetchHealthStatus = async () => {
-    setHealthLoading(true)
-    try {
-      const health = await checkKestraHealth()
-      setHealthStatus(health)
-      setError('') // Clear error on success
-    } catch (err) {
-      setError('Failed to check Kestra health')
-    } finally {
-      setHealthLoading(false)
+  useEffect(() => {
+    // Only fetch executions when connected
+    if (connection.isConnected) {
+      fetchRecentExecutions()
     }
-  }
+  }, [connection.isConnected])
 
   useEffect(() => {
-    fetchRecentExecutions()
-    fetchHealthStatus()
-  }, [])
-
-  useEffect(() => {
-    if (executionId) {
+    if (executionId && connection.canMakeApiCalls) {
       fetchExecutionStatus(executionId)
       
-      // Poll for updates if execution is running
+      // Poll for updates if execution is running and connected
       const interval = setInterval(() => {
-        fetchExecutionStatus(executionId)
+        if (connection.canMakeApiCalls) {
+          fetchExecutionStatus(executionId)
+        }
       }, 3000)
 
       return () => clearInterval(interval)
     }
-  }, [executionId])
+  }, [executionId, connection.canMakeApiCalls])
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -141,13 +143,15 @@ export function KestraStatus({ executionId, onExecutionComplete }: KestraStatusP
               variant="outline"
               size="sm"
               onClick={() => {
-                fetchRecentExecutions()
-                fetchHealthStatus()
+                connection.checkConnection()
+                if (connection.canMakeApiCalls) {
+                  fetchRecentExecutions()
+                }
               }}
-              disabled={loading || healthLoading}
+              disabled={loading || connection.isChecking}
               className="gap-1.5 h-7 px-2"
             >
-              <RefreshCw className={`h-3.5 w-3.5 ${loading || healthLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-3.5 w-3.5 ${loading || connection.isChecking ? 'animate-spin' : ''}`} />
               <span className="text-xs">Refresh</span>
             </Button>
             <Button
@@ -164,43 +168,63 @@ export function KestraStatus({ executionId, onExecutionComplete }: KestraStatusP
       </CardHeader>
       
       <CardContent className="space-y-4">
-        {/* Health Status */}
-        {healthStatus && (
-          <div className="space-y-3">
-            <h4 className="text-sm font-medium text-gray-900 dark:text-white">Connection Status</h4>
-            
-            <div className="p-3 bg-gray-50 dark:bg-slate-800 rounded-lg">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  {healthStatus.kestra.healthy ? (
-                    <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />
-                  ) : (
-                    <XCircle className="h-3.5 w-3.5 text-red-500" />
-                  )}
-                  <span className="text-xs font-medium text-gray-900 dark:text-white">
-                    Kestra Server
-                  </span>
-                </div>
-                <Badge className={`text-xs ${healthStatus.kestra.healthy 
-                  ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'
-                  : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800'
-                }`}>
-                  {healthStatus.kestra.healthy ? 'Connected' : 'Disconnected'}
-                </Badge>
-              </div>
-              
-              <div className="mt-2 text-xs text-gray-600 dark:text-gray-400 space-y-0.5">
-                <div>Namespace: {healthStatus.environment.namespace}</div>
-                <div>Flow: {healthStatus.environment.flowId}</div>
-                {!healthStatus.kestra.healthy && healthStatus.kestra.error && (
-                  <div className="mt-1 text-red-600 dark:text-red-400">
-                    Error: {healthStatus.kestra.error}
-                  </div>
+        {/* Connection Status */}
+        <div className="space-y-3">
+          <h4 className="text-sm font-medium text-gray-900 dark:text-white">Connection Status</h4>
+          
+          <div className="p-3 bg-gray-50 dark:bg-slate-800 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {connection.isChecking ? (
+                  <Loader2 className="h-3.5 w-3.5 text-blue-500 animate-spin" />
+                ) : connection.isConnected ? (
+                  <Wifi className="h-3.5 w-3.5 text-emerald-500" />
+                ) : (
+                  <WifiOff className="h-3.5 w-3.5 text-red-500" />
                 )}
+                <span className="text-xs font-medium text-gray-900 dark:text-white">
+                  Kestra Server
+                </span>
               </div>
+              <Badge className={`text-xs ${connection.isConnected 
+                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'
+                : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800'
+              }`}>
+                {connection.isChecking ? 'Checking...' : connection.isConnected ? 'Connected' : 'Offline'}
+              </Badge>
+            </div>
+            
+            <div className="mt-2 text-xs text-gray-600 dark:text-gray-400 space-y-0.5">
+              <div>Namespace: {process.env.NEXT_PUBLIC_KESTRA_NAMESPACE || 'assemblehack25.wakanda'}</div>
+              <div>Flow: {process.env.NEXT_PUBLIC_KESTRA_FLOW_ID || 'wakanda_business_intelligence_engine'}</div>
+              {connection.lastChecked && (
+                <div>Last checked: {connection.lastChecked.toLocaleTimeString()}</div>
+              )}
+              {connection.error && (
+                <div className="mt-1 text-red-600 dark:text-red-400">
+                  Error: {connection.error}
+                </div>
+              )}
+              {!connection.isConnected && connection.retryCount > 0 && (
+                <div className="mt-1 text-amber-600 dark:text-amber-400">
+                  Retrying... (attempt {connection.retryCount}/4)
+                </div>
+              )}
             </div>
           </div>
-        )}
+          
+          {/* Offline Notice */}
+          {connection.shouldShowOfflineMessage && (
+            <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                <p className="text-sm text-amber-800 dark:text-amber-200">
+                  Kestra server is offline. Make sure it's running on localhost:8080
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Current Execution */}
         {execution && (
@@ -259,14 +283,21 @@ export function KestraStatus({ executionId, onExecutionComplete }: KestraStatusP
             {loading && <Loader2 className="h-4 w-4 animate-spin text-gray-500" />}
           </div>
           
-          {error && (
+          {error && connection.isConnected && (
             <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
               <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
             </div>
           )}
           
           <div className="space-y-2">
-            {recentExecutions.length === 0 && !loading ? (
+            {!connection.isConnected ? (
+              <div className="text-center py-6">
+                <WifiOff className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Server offline - executions unavailable
+                </p>
+              </div>
+            ) : recentExecutions.length === 0 && !loading ? (
               <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
                 No recent executions found
               </p>

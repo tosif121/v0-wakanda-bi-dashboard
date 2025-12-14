@@ -441,6 +441,37 @@ docker-compose up -d
    - `SUPABASE_URL`
    - `SUPABASE_KEY`
 
+#### 🔌 Handling Kestra Server Offline State
+
+The application gracefully handles when Kestra server is not running:
+
+**Automatic Detection**:
+- Connection status monitoring with progressive retry (5s, 10s, 30s, 1m intervals)
+- Real-time connection state updates across all components
+- Automatic reconnection when server comes back online
+
+**User Experience**:
+- 🟡 **Offline Banner**: Shows when server is unavailable with retry and "Open Kestra" buttons
+- 🔴 **Disabled Actions**: Upload and analysis buttons are disabled when offline
+- 📊 **Graceful Degradation**: Dashboard shows cached data and hides server-dependent features
+- ⚡ **Smart Retries**: Automatic background reconnection attempts with exponential backoff
+
+**Developer Features**:
+- Connection status indicators in all relevant components
+- Timeout handling (5s for health checks, 10s for workflow triggers)
+- Structured error responses instead of throwing exceptions
+- Empty arrays returned for unavailable data instead of errors
+
+**Starting Kestra Server**:
+```bash
+# Quick start with Docker
+docker run --pull=always --rm -it -p 8080:8080 --user=root \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v /tmp:/tmp kestra/kestra:latest server local
+
+# The dashboard will automatically detect when server comes online
+```
+
 ### 4. Perplexity AI Setup
 
 1. Sign up at [perplexity.ai](https://perplexity.ai)

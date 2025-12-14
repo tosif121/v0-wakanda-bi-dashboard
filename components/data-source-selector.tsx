@@ -23,6 +23,7 @@ import {
 } from 'lucide-react'
 
 import { triggerWakandaWorkflow } from '@/lib/kestra'
+import { useKestraConnection } from '@/lib/use-kestra-connection'
 
 interface DataSourceSelectorProps {
   onDataProcessed?: (result: any) => void
@@ -37,6 +38,8 @@ export function DataSourceSelector({ onDataProcessed }: DataSourceSelectorProps)
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const [uploadUrl, setUploadUrl] = useState<string | null>(null)
   const [uploadError, setUploadError] = useState('')
+  
+  const connection = useKestraConnection()
 
   const validateUrl = (url: string) => {
     try {
@@ -119,6 +122,13 @@ export function DataSourceSelector({ onDataProcessed }: DataSourceSelectorProps)
   const handleFileProcess = async () => {
     if (!uploadUrl) return
     
+    // Check if Kestra is connected
+    if (!connection.isConnected) {
+      toast.error('Kestra server is offline. Please start the server and try again.')
+      setUploadError('Kestra server is not available')
+      return
+    }
+    
     setIsProcessing(true)
     setUploadError('')
     
@@ -164,6 +174,13 @@ export function DataSourceSelector({ onDataProcessed }: DataSourceSelectorProps)
 
     if (!validateUrl(urlInput)) {
       setUrlError('Please enter a valid URL')
+      return
+    }
+
+    // Check if Kestra is connected
+    if (!connection.isConnected) {
+      toast.error('Kestra server is offline. Please start the server and try again.')
+      setUrlError('Kestra server is not available')
       return
     }
 
@@ -221,17 +238,29 @@ export function DataSourceSelector({ onDataProcessed }: DataSourceSelectorProps)
   return (
     <Card className="transition-all duration-200 hover:shadow-lg border-gray-200 dark:border-gray-800 bg-white dark:bg-slate-900">
       <CardHeader className="pb-3">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-indigo-500 to-purple-600">
-            <Database className="h-4 w-4 text-white" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-indigo-500 to-purple-600">
+              <Database className="h-4 w-4 text-white" />
+            </div>
+            <div>
+              <CardTitle className="text-base font-semibold text-gray-900 dark:text-white">
+                Data Sources
+              </CardTitle>
+              <p className="text-xs text-gray-600 dark:text-gray-400">
+                Upload files or paste URLs
+              </p>
+            </div>
           </div>
-          <div>
-            <CardTitle className="text-base font-semibold text-gray-900 dark:text-white">
-              Data Sources
-            </CardTitle>
-            <p className="text-xs text-gray-600 dark:text-gray-400">
-              Upload files or paste URLs
-            </p>
+          
+          {/* Connection Status Indicator */}
+          <div className="flex items-center gap-1.5">
+            <div className={`h-2 w-2 rounded-full ${
+              connection.isConnected ? 'bg-emerald-500' : 'bg-red-500'
+            } ${connection.isChecking ? 'animate-pulse' : ''}`} />
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              {connection.isChecking ? 'Checking...' : connection.isConnected ? 'Online' : 'Offline'}
+            </span>
           </div>
         </div>
       </CardHeader>
@@ -320,14 +349,19 @@ export function DataSourceSelector({ onDataProcessed }: DataSourceSelectorProps)
                 {uploadUrl && (
                   <Button
                     onClick={handleFileProcess}
-                    disabled={isProcessing}
+                    disabled={isProcessing || !connection.isConnected}
                     size="sm"
-                    className="w-full gap-1.5 h-8 bg-linear-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white"
+                    className="w-full gap-1.5 h-8 bg-linear-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white disabled:opacity-50"
                   >
                     {isProcessing ? (
                       <>
                         <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
                         <span className="text-xs">Processing...</span>
+                      </>
+                    ) : !connection.isConnected ? (
+                      <>
+                        <AlertCircle className="h-3.5 w-3.5" />
+                        <span className="text-xs">Server Offline</span>
                       </>
                     ) : (
                       <>
@@ -390,14 +424,19 @@ export function DataSourceSelector({ onDataProcessed }: DataSourceSelectorProps)
                     <Label className="text-sm font-medium">URL Preview</Label>
                     <Button
                       onClick={handleUrlProcess}
-                      disabled={isProcessing}
+                      disabled={isProcessing || !connection.isConnected}
                       size="sm"
-                      className="gap-1.5 h-7 px-3 bg-linear-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white"
+                      className="gap-1.5 h-7 px-3 bg-linear-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white disabled:opacity-50"
                     >
                       {isProcessing ? (
                         <>
                           <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
                           <span className="text-xs">Processing...</span>
+                        </>
+                      ) : !connection.isConnected ? (
+                        <>
+                          <AlertCircle className="h-3.5 w-3.5" />
+                          <span className="text-xs">Server Offline</span>
                         </>
                       ) : (
                         <>

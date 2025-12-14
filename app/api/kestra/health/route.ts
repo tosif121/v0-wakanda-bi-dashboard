@@ -96,7 +96,8 @@ export async function GET() {
         url: kestraUrl,
         healthy: false,
         error: lastError?.message || 'All endpoints failed',
-        auth: username ? 'Credentials configured' : 'No credentials'
+        auth: username ? 'Credentials configured' : 'No credentials',
+        status: 'offline'
       },
       environment: {
         namespace: process.env.KESTRA_NAMESPACE,
@@ -114,7 +115,8 @@ export async function GET() {
       kestra: {
         url: process.env.KESTRA_URL || 'http://localhost:8080',
         healthy: false,
-        error: error.message
+        error: error.message,
+        status: 'offline'
       },
       environment: {
         namespace: process.env.KESTRA_NAMESPACE,
