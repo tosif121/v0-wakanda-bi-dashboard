@@ -255,6 +255,7 @@ graph TD
 - **Icons**: Lucide React
 - **Charts**: Recharts
 - **Theme**: next-themes
+- **Notifications**: react-hot-toast
 
 ### Backend & Services
 - **Database**: Supabase (PostgreSQL)
@@ -301,6 +302,19 @@ npm install
 
 # Using pnpm (recommended)
 pnpm install
+```
+
+#### Troubleshooting pnpm Installation
+
+If you encounter `ERR_PNPM_OUTDATED_LOCKFILE`, run:
+
+```bash
+# Update the lockfile
+pnpm install
+
+# Or if you prefer npm
+rm pnpm-lock.yaml
+npm install
 ```
 
 ### 3. Environment Setup
