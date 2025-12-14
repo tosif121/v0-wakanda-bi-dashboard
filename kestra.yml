@@ -1,0 +1,37 @@
+# Kestra Configuration for Wakanda BI Engine
+# Local development setup with authentication
+
+kestra:
+  server:
+    port: 8080
+  
+  # Basic Authentication Configuration
+  security:
+    basic-auth:
+      enabled: true
+      username: tosifdevra786@gmail.com
+      password: Tosif@121!
+  
+  # Repository Configuration
+  repository:
+    type: memory
+  
+  # Queue Configuration  
+  queue:
+    type: memory
+  
+  # Storage Configuration
+  storage:
+    type: local
+    local:
+      base-path: /app/data
+  
+  # Metrics Configuration
+  metrics:
+    enabled: true
+  
+  # Logging Configuration
+  logging:
+    level:
+      root: INFO
+      io.kestra: DEBUG

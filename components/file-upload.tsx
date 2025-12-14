@@ -82,14 +82,17 @@ export function FileUpload({ onFileProcessed }: FileUploadProps) {
     setUploadError(null)
     
     try {
-      const execution = await triggerWakandaWorkflow({
+      const result = await triggerWakandaWorkflow({
         dataSourceUrl: uploadUrl,
-        recipientEmail: 'executive@company.com',
         decisionThreshold: 75
       })
       
-      setProcessingResult(execution)
-      onFileProcessed?.(execution)
+      if (result.success && result.execution) {
+        setProcessingResult(result.execution)
+        onFileProcessed?.(result.execution)
+      } else {
+        throw new Error(result.error || 'Failed to trigger workflow')
+      }
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Processing failed. Please try again.'
       setUploadError(errorMessage)

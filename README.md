@@ -8,11 +8,53 @@ A modern, professional dashboard for AI-powered data orchestration and automatio
 [![Built with Next.js](https://img.shields.io/badge/Built%20with-Next.js-black?style=for-the-badge&logo=next.js)](https://nextjs.org)
 [![Powered by Kestra](https://img.shields.io/badge/Powered%20by-Kestra-purple?style=for-the-badge)](https://kestra.io)
 
-## 🚀 Live Demo
+## 🚀 Live Demo & Deployment
 
-**Production URL**: [https://v0-wakanda-bi-dashboard-peujpjvxp-tosif121s-projects.vercel.app](https://v0-wakanda-bi-dashboard-peujpjvxp-tosif121s-projects.vercel.app)
+**Production URL**: [https://v0-wakanda-bi-dashboard-7esgbv6vs-tosif121s-projects.vercel.app](https://v0-wakanda-bi-dashboard-7esgbv6vs-tosif121s-projects.vercel.app)
 **GitHub Repository**: [https://github.com/tosif121/v0-wakanda-bi-dashboard](https://github.com/tosif121/v0-wakanda-bi-dashboard)
-**Kestra Workflows**: Local Development with Docker (see setup instructions below)
+**Kestra UI**: http://localhost:8080 (local development)
+
+### 🎯 One-Click Deployment
+```bash
+# Complete deployment (Vercel + Local Kestra)
+./deploy.sh
+```
+
+### 🔧 Manual Setup
+
+#### Prerequisites
+- Node.js 18+ and npm
+- Docker Desktop (for local Kestra)
+- Vercel CLI (for deployment)
+
+#### 1. Local Development
+```bash
+# Install dependencies
+npm install --legacy-peer-deps
+
+# Start development server
+npm run dev
+```
+
+#### 2. Local Kestra Setup
+```bash
+# Start Kestra with authentication
+./start-kestra.sh
+
+# Deploy workflow to Kestra
+./deploy-workflow.sh
+```
+
+#### 3. Vercel Deployment
+```bash
+# Deploy to production
+vercel --prod
+```
+
+### 🔐 Kestra Authentication
+- **URL**: http://localhost:8080
+- **Username**: tosifdevra786@gmail.com
+- **Password**: Tosif@121!
 
 ### 🎬 **Demo Video**
 
@@ -126,12 +168,16 @@ GitHub Push → Actions → Tests → Build → Deploy → Monitor
 ### 🤖 **AI-Powered Analysis**
 - **Perplexity AI Integration**: Advanced business intelligence analysis
 - **Automated Decision Making**: AI confidence-based automation triggers
+- **Configurable Thresholds**: User-controlled automation sensitivity (0-100%)
+- **PDF Report Generation**: Professional executive summaries with AI insights
 - **Real-time Insights**: Live dashboard updates as workflows execute
 - **Natural Language Reports**: AI-generated executive summaries
 
 ### 🔄 **Workflow Automation**
 - **Kestra Orchestration**: Professional workflow engine with Docker deployment
 - **Multi-step Processing**: Data cleaning → AI analysis → Decision making → Storage
+- **PDF Report Generation**: Automated executive summaries with professional formatting
+- **Email Distribution**: Automated PDF delivery to stakeholders and executives
 - **Error Handling**: Robust failure recovery and retry mechanisms
 - **Scheduled Execution**: Automated daily/weekly business reports
 
@@ -145,6 +191,7 @@ GitHub Push → Actions → Tests → Build → Deploy → Monitor
 - **Real-time Monitoring**: Live workflow status and execution history
 - **Interactive Charts**: Performance trends and impact distribution
 - **Data Source Flexibility**: CSV uploads, Google Sheets, direct URLs
+- **Workflow Configuration**: Decision threshold controls
 - **Mobile Responsive**: Works perfectly on all devices
 
 ### 🔒 **Enterprise-Grade Quality**
@@ -354,6 +401,8 @@ graph TD
 - **Impact Distribution**: Score-based performance breakdown
 - **AI Performance Metrics**: Multi-dimensional AI analysis tracking
 - **Automated Reports**: Downloadable insights and recommendations
+- **PDF Report Generation**: Professional executive summaries with charts
+- **Email PDF Delivery**: Automated report distribution to stakeholders
 
 ## 🛠 Tech Stack
 
@@ -372,6 +421,8 @@ graph TD
 - **Storage**: Vercel Blob (with local fallback for development)
 - **Workflow Engine**: Kestra
 - **AI**: Perplexity API (Sonar model)
+- **PDF Generation**: Puppeteer + React PDF components
+- **Email Service**: SMTP integration for automated report delivery
 - **Deployment**: Vercel
 
 ### Development Tools
@@ -616,6 +667,36 @@ docker run --pull=always --rm -it -p 8080:8080 --user=root \
 2. Generate API key from dashboard
 3. Add to both `.env.local` and Kestra secrets
 
+### 5. PDF Generation Setup
+
+**PDF API Configuration:**
+```env
+# PDF Generation (Optional)
+PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+PDF_STORAGE_PATH=./public/reports
+ENABLE_PDF_GENERATION=true
+
+# Email Service for PDF Delivery
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password
+```
+
+**PDF Features:**
+- **Executive Reports**: AI-generated business intelligence summaries
+- **Custom Branding**: Company logos and color schemes
+- **Chart Integration**: Embedded data visualizations
+- **Email Delivery**: Automated distribution to stakeholders
+- **Secure Downloads**: Token-based access control
+
+**PDF Dependencies:**
+```bash
+# Install PDF generation dependencies
+npm install puppeteer react-pdf @react-pdf/renderer
+npm install nodemailer @types/nodemailer
+```
+
 ## 🤖 GitHub Actions CI/CD Pipeline
 
 This project includes comprehensive GitHub Actions workflows for automated testing, building, and deployment. All workflow files are located in `.github/workflows/` and are actively running:
@@ -744,9 +825,11 @@ npm run dev
 
 ### **5. Test the Complete Flow**
 1. Upload a CSV file or paste a Google Sheets URL
-2. Click "Analyze" to trigger the AI workflow
-3. Watch real-time updates as AI processes your data
-4. View automated insights and business decisions
+2. Configure decision threshold for automation sensitivity
+3. Click "Analyze" to trigger the AI workflow
+4. Watch real-time updates as AI processes your data
+5. View automated insights and business decisions
+6. Download professional PDF reports from dashboard
 
 ## 🛠️ **Development**
 
@@ -810,6 +893,39 @@ npm run docker:run
 - `POST /api/kestra/trigger` - Trigger workflow execution
 - `GET /api/kestra/health` - Check Kestra service health
 - `GET /api/kestra/status/[id]` - Get execution status
+
+### PDF Generation & Reports
+- `GET /api/reports/pdf/[executionId]` - Generate PDF report for specific execution
+- `POST /api/reports/pdf/generate` - Create custom PDF report with AI insights
+- `GET /api/reports/pdf/download/[reportId]` - Download generated PDF report
+- `POST /api/reports/email-pdf` - Email PDF report to specified recipients
+
+**PDF API Features:**
+- **📊 Executive Summaries**: Professional PDF reports with charts and insights
+- **🎨 Custom Branding**: Company logos and color schemes
+- **📈 Data Visualizations**: Embedded charts and graphs in PDF format
+- **📧 Email Integration**: Automatic PDF delivery via email
+- **🔒 Secure Access**: Token-based authentication for report downloads
+- **📱 Mobile Optimized**: PDFs render perfectly on all devices
+
+**Example PDF API Usage:**
+```typescript
+// Generate PDF report
+const response = await fetch('/api/reports/pdf/generate', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    executionId: 'exec_123',
+    includeCharts: true,
+    branding: { logo: 'company-logo.png', colors: ['#6366f1', '#8b5cf6'] },
+    recipients: ['executive@company.com']
+  })
+})
+
+// Download PDF
+const pdfBlob = await fetch(`/api/reports/pdf/download/${reportId}`)
+const url = URL.createObjectURL(await pdfBlob.blob())
+```
 
 ## 🌐 Deployment
 

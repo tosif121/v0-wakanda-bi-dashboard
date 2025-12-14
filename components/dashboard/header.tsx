@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
-
 import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { WorkflowDialog } from '@/components/workflow-dialog';
 import { GitBranch, Download, User, RefreshCw } from 'lucide-react';
 import { useState } from 'react';
 
@@ -344,15 +344,16 @@ export function DashboardHeader({ onRefresh, dashboardData }: DashboardHeaderPro
               </Button>
             )}
 
-            <Button
-              variant="secondary"
-              size="sm"
-              className="gap-1.5 hover:scale-105 transition-transform duration-200 h-8 px-3"
-              onClick={() => window.open('http://localhost:8080', '_blank')}
-            >
-              <GitBranch className="h-3.5 w-3.5" />
-              <span className="hidden lg:inline text-xs">Workflow</span>
-            </Button>
+            <WorkflowDialog>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 hover:scale-105 transition-transform duration-200 h-8 px-3 border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-slate-800"
+              >
+                <GitBranch className="h-3.5 w-3.5" />
+                <span className="hidden lg:inline text-xs">Workflow</span>
+              </Button>
+            </WorkflowDialog>
             <Button
               variant="outline"
               size="sm"

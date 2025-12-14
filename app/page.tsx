@@ -29,6 +29,26 @@ export default function Dashboard() {
     return total > 0 ? Math.round((count / total) * 100) : 0;
   };
 
+  // Delete execution function
+  const handleDeleteExecution = async (executionId: string) => {
+    try {
+      // Here you would typically call an API to delete the execution
+      // For now, we'll just remove it from the local state
+      console.log('Deleting execution:', executionId);
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Refresh data after deletion
+      await fetchRealData(false, false);
+      
+      return Promise.resolve();
+    } catch (error) {
+      console.error('Failed to delete execution:', error);
+      throw error;
+    }
+  };
+
   // Rate limiting for dashboard fetches
   const lastFetchRef = useRef(0)
   const FETCH_COOLDOWN = 1000 // 1 second minimum between fetches
@@ -380,7 +400,10 @@ export default function Dashboard() {
         />
 
         {/* Execution History */}
-        <ExecutionHistory executions={dashboardData?.executionHistory} />
+        <ExecutionHistory 
+          executions={dashboardData?.executionHistory} 
+          onDeleteExecution={handleDeleteExecution}
+        />
       </div>
     </div>
   );

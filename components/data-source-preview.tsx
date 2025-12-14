@@ -83,13 +83,16 @@ export function DataSourcePreview({ url, onProcess }: DataSourcePreviewProps) {
     
     setIsProcessing(true)
     try {
-      const execution = await triggerWakandaWorkflow({
+      const result = await triggerWakandaWorkflow({
         dataSourceUrl: preview.processUrl,
-        recipientEmail: 'executive@company.com',
         decisionThreshold: 75
       })
       
-      onProcess?.(execution)
+      if (result.success && result.execution) {
+        onProcess?.(result.execution)
+      } else {
+        throw new Error(result.error || 'Failed to trigger workflow')
+      }
     } catch (error) {
       console.error('Processing failed:', error)
     } finally {

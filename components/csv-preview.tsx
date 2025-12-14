@@ -90,13 +90,16 @@ export function CSVPreview({ file, onProcess }: CSVPreviewProps) {
     setError(null)
     
     try {
-      const execution = await triggerWakandaWorkflow({
+      const result = await triggerWakandaWorkflow({
         dataSourceUrl: uploadUrl,
-        recipientEmail: 'executive@company.com',
         decisionThreshold: 75
       })
       
-      onProcess?.(execution)
+      if (result.success && result.execution) {
+        onProcess?.(result.execution)
+      } else {
+        throw new Error(result.error || 'Failed to trigger workflow')
+      }
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Processing failed. Please try again.'
       setError(errorMessage)
@@ -197,7 +200,7 @@ export function CSVPreview({ file, onProcess }: CSVPreviewProps) {
                 <TableHeader>
                   <TableRow className="bg-gray-50 dark:bg-slate-800">
                     {preview.headers.map((header, index) => (
-                      <TableHead key={index} className="text-xs font-medium">
+                      <TableHead key={index} className="text-xs font-medium text-gray-600 dark:text-gray-400">
                         {header}
                       </TableHead>
                     ))}

@@ -231,7 +231,7 @@ export function KestraStatus({ executionId, onExecutionComplete }: KestraStatusP
               <div className="flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                 <p className="text-sm text-amber-800 dark:text-amber-200">
-                  Kestra server is offline. Make sure it's running on localhost:8080
+                  Kestra server is offline. Make sure it's running and accessible
                 </p>
               </div>
             </div>

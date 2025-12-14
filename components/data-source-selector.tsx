@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useDropzone } from 'react-dropzone'
 import toast from 'react-hot-toast'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Slider } from '@/components/ui/slider'
 
 import { 
   Upload, 
@@ -19,7 +20,8 @@ import {
   FileText,
   Globe,
   Sheet,
-  X
+  X,
+  Settings
 } from 'lucide-react'
 
 import { triggerWakandaWorkflow } from '@/lib/kestra'
@@ -38,8 +40,19 @@ export function DataSourceSelector({ onDataProcessed }: DataSourceSelectorProps)
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const [uploadUrl, setUploadUrl] = useState<string | null>(null)
   const [uploadError, setUploadError] = useState('')
+  const [decisionThreshold, setDecisionThreshold] = useState(75)
   
   const connection = useKestraConnectionContext()
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+    }
+  }, [])
 
   const validateUrl = (url: string) => {
     try {
@@ -137,23 +150,30 @@ export function DataSourceSelector({ onDataProcessed }: DataSourceSelectorProps)
     
     try {
       console.log('Triggering workflow with URL:', uploadUrl)
-      const execution = await triggerWakandaWorkflow({
+      const result = await triggerWakandaWorkflow({
         dataSourceUrl: uploadUrl,
-        recipientEmail: 'executive@company.com',
-        decisionThreshold: 75
+        decisionThreshold: decisionThreshold
       })
       
-      console.log('Workflow triggered successfully:', execution)
-      setProcessingResult(execution)
-      onDataProcessed?.(execution)
-      
-      // Dismiss processing toast
-      toast.dismiss('file-process')
-      
-      // Clear the success message after 5 seconds
-      setTimeout(() => {
-        setProcessingResult(null)
-      }, 5000)
+      if (result.success && result.execution) {
+        console.log('Workflow triggered successfully:', result.execution)
+        setProcessingResult(result.execution)
+        onDataProcessed?.(result.execution)
+        
+        // Dismiss processing toast
+        toast.dismiss('file-process')
+        
+        // Clear the success message after 5 seconds
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current)
+        }
+        timeoutRef.current = setTimeout(() => {
+          setProcessingResult(null)
+          timeoutRef.current = null
+        }, 5000)
+      } else {
+        throw new Error(result.error || 'Failed to trigger workflow')
+      }
       
     } catch (error) {
       console.error('Workflow trigger failed:', error)
@@ -195,22 +215,29 @@ export function DataSourceSelector({ onDataProcessed }: DataSourceSelectorProps)
       const processUrl = convertGoogleSheetsUrl(urlInput)
       
       console.log('Triggering workflow with URL:', processUrl)
-      const execution = await triggerWakandaWorkflow({
+      const result = await triggerWakandaWorkflow({
         dataSourceUrl: processUrl,
-        recipientEmail: 'executive@company.com',
-        decisionThreshold: 75
+        decisionThreshold: decisionThreshold
       })
       
-      console.log('Workflow triggered successfully:', execution)
-      setProcessingResult(execution)
-      onDataProcessed?.(execution)
-      
-      // Dismiss processing toast
-      toast.dismiss('url-process')
+      if (result.success && result.execution) {
+        console.log('Workflow triggered successfully:', result.execution)
+        setProcessingResult(result.execution)
+        onDataProcessed?.(result.execution)
+        
+        // Dismiss processing toast
+        toast.dismiss('url-process')
+      } else {
+        throw new Error(result.error || 'Failed to trigger workflow')
+      }
       
       // Clear the success message after 5 seconds
-      setTimeout(() => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+      timeoutRef.current = setTimeout(() => {
         setProcessingResult(null)
+        timeoutRef.current = null
       }, 5000)
       
     } catch (error) {
@@ -265,6 +292,50 @@ export function DataSourceSelector({ onDataProcessed }: DataSourceSelectorProps)
         </div>
       </CardHeader>
       <CardContent>
+        {/* Configuration Section */}
+        <div className="space-y-4 mb-4 p-3 bg-gray-50 dark:bg-slate-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-2 mb-3">
+            <Settings className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+            <Label className="text-sm font-medium text-gray-900 dark:text-white">
+              Decision Threshold
+            </Label>
+          </div>
+          
+          <div className="space-y-4">
+            {/* Threshold Slider */}
+            <div className="space-y-2">
+              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <AlertCircle className="h-3.5 w-3.5" />
+                  Decision Threshold
+                </span>
+                <span className="text-xs font-mono bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded">
+                  {decisionThreshold}%
+                </span>
+              </Label>
+              <Slider
+                value={[decisionThreshold]}
+                onValueChange={(value) => setDecisionThreshold(value[0])}
+                max={100}
+                min={0}
+                step={5}
+                className="w-full"
+              />
+              <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                <span>Conservative (0%)</span>
+                <span>Aggressive (100%)</span>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                AI actions trigger when impact score ≥ {decisionThreshold}%
+                {decisionThreshold >= 90 && " (Very Conservative)"}
+                {decisionThreshold >= 70 && decisionThreshold < 90 && " (Balanced)"}
+                {decisionThreshold >= 50 && decisionThreshold < 70 && " (Moderate)"}
+                {decisionThreshold < 50 && " (Aggressive)"}
+              </p>
+            </div>
+          </div>
+        </div>
+
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-3">
           <TabsList className="grid w-full grid-cols-2 h-8">
             <TabsTrigger value="upload" className="gap-1.5 text-xs">
@@ -317,7 +388,7 @@ export function DataSourceSelector({ onDataProcessed }: DataSourceSelectorProps)
             ) : (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <Label className="text-sm font-medium">File Ready</Label>
+                  <Label className="text-sm font-medium text-purple-600 dark:text-purple-400">File Ready</Label>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -351,7 +422,11 @@ export function DataSourceSelector({ onDataProcessed }: DataSourceSelectorProps)
                     onClick={handleFileProcess}
                     disabled={isProcessing || !connection.isConnected}
                     size="sm"
-                    className="w-full gap-1.5 h-8 bg-linear-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white disabled:opacity-50"
+                    className={`w-full gap-1.5 h-8 text-white disabled:opacity-50 ${
+                      !connection.isConnected 
+                        ? 'bg-red-500 hover:bg-red-600 disabled:bg-red-400 disabled:hover:bg-red-400' 
+                        : 'bg-linear-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700'
+                    }`}
                   >
                     {isProcessing ? (
                       <>
@@ -384,9 +459,15 @@ export function DataSourceSelector({ onDataProcessed }: DataSourceSelectorProps)
                     <p className="text-xs text-emerald-700 dark:text-emerald-300">
                       ID: <code className="bg-emerald-100 dark:bg-emerald-800 px-1 rounded text-xs">{processingResult.id?.slice(0, 12)}...</code>
                     </p>
-                    <div className="mt-2 flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
-                      <div className="h-2 w-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                      <span>Dashboard will update automatically with results</span>
+                    <div className="mt-2 space-y-1">
+                      <div className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
+                        <AlertCircle className="h-3 w-3" />
+                        <span>Threshold: {decisionThreshold}%</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
+                        <div className="h-2 w-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                        <span>Dashboard will update automatically with results</span>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -426,7 +507,11 @@ export function DataSourceSelector({ onDataProcessed }: DataSourceSelectorProps)
                       onClick={handleUrlProcess}
                       disabled={isProcessing || !connection.isConnected}
                       size="sm"
-                      className="gap-1.5 h-7 px-3 bg-linear-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white disabled:opacity-50"
+                      className={`gap-1.5 h-7 px-3 text-white disabled:opacity-50 ${
+                        !connection.isConnected 
+                          ? 'bg-red-500 hover:bg-red-600 disabled:bg-red-400 disabled:hover:bg-red-400' 
+                          : 'bg-linear-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700'
+                      }`}
                     >
                       {isProcessing ? (
                         <>
@@ -476,12 +561,15 @@ export function DataSourceSelector({ onDataProcessed }: DataSourceSelectorProps)
                   <p className="text-sm text-emerald-700 dark:text-emerald-300">
                     Execution ID: <code className="bg-emerald-100 dark:bg-emerald-800 px-1 rounded">{processingResult.id}</code>
                   </p>
-                  <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
-                    Dashboard will refresh automatically to show processing results.
-                  </p>
-                  <div className="mt-2 flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
-                    <div className="h-2 w-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                    <span>Dashboard will update automatically with results</span>
+                  <div className="mt-2 space-y-1">
+                    <div className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
+                      <Settings className="h-3 w-3" />
+                      <span>Threshold: {decisionThreshold}%</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
+                      <div className="h-2 w-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                      <span>Dashboard will update automatically with results</span>
+                    </div>
                   </div>
                 </div>
               )}

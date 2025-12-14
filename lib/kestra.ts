@@ -17,12 +17,20 @@ export interface KestraExecution {
 
 export interface TriggerWorkflowParams {
   dataSourceUrl?: string;
-  recipientEmail?: string;
   decisionThreshold?: number;
 }
 
+export interface TriggerWorkflowResult {
+  success: boolean;
+  execution?: KestraExecution;
+  error?: string;
+  status?: number | string;
+  details?: string;
+  suggestion?: string;
+}
+
 // ✅ Trigger workflow via Next.js API
-export async function triggerWakandaWorkflow(params: TriggerWorkflowParams = {}) {
+export async function triggerWakandaWorkflow(params: TriggerWorkflowParams = {}): Promise<TriggerWorkflowResult> {
   try {
     const response = await fetch('/api/kestra/trigger', {
       method: 'POST',
@@ -41,14 +49,31 @@ export async function triggerWakandaWorkflow(params: TriggerWorkflowParams = {})
       } catch {
         errorData = { error: errorText };
       }
-      throw new Error(errorData.error || 'Failed to trigger workflow');
+      
+      // Return structured error response instead of throwing
+      return {
+        success: false,
+        error: errorData.error || 'Failed to trigger workflow',
+        status: response.status,
+        details: errorData.details,
+        suggestion: errorData.suggestion
+      };
     }
 
     const execution = await response.json();
-    return execution as KestraExecution;
+    return {
+      success: true,
+      execution: execution as KestraExecution
+    };
   } catch (error) {
     console.error('Error triggering Kestra workflow:', error);
-    throw error;
+    
+    // Return structured error response instead of throwing
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to trigger workflow',
+      status: 'network-error'
+    };
   }
 }
 

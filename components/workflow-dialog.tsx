@@ -1,4 +1,17 @@
-id: wakanda_business_intelligence_engine
+"use client"
+
+import { useState } from 'react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { StatCard } from '@/components/reusable/StatCard'
+import { GitBranch, Copy, ExternalLink, Check, Play, Database, Brain, Target } from 'lucide-react'
+import { toast } from 'react-hot-toast'
+
+interface WorkflowDialogProps {
+  children?: React.ReactNode
+}
+
+const WORKFLOW_CONTENT = `id: wakanda_business_intelligence_engine
 namespace: assemblehack25.wakanda
 
 description: |
@@ -53,7 +66,7 @@ tasks:
     beforeCommands:
       - pip install openai --quiet
     env:
-      PERPLEXITY_API_KEY: "{{ kv('PERPLEXITY_API_KEY', 'system') }}"
+      PERPLEXITY_API_KEY: "{{ kv('PERPLEXITY_API_KEY') }}"
     inputFiles:
       data_summary.json: "{{ outputs.clean_data.outputFiles['data_summary.json'] }}"
     outputFiles:
@@ -110,7 +123,7 @@ tasks:
     beforeCommands:
       - pip install openai --quiet
     env:
-      PERPLEXITY_API_KEY: "{{ kv('PERPLEXITY_API_KEY', 'system') }}"
+      PERPLEXITY_API_KEY: "{{ kv('PERPLEXITY_API_KEY') }}"
     inputFiles:
       ai_summary.txt: "{{ outputs.ai_analysis.outputFiles['ai_summary.txt'] }}"
     outputFiles:
@@ -128,7 +141,7 @@ tasks:
       with open("ai_summary.txt") as f:
           analysis = f.read()
 
-      prompt = "Based on this analysis, return ONLY valid JSON: {\"impact_score\": 85, \"confidence\": 90, \"actions\": [\"action1\"], \"urgent\": true}. Analysis: " + analysis
+      prompt = "Based on this analysis, return ONLY valid JSON: {\\"impact_score\\": 85, \\"confidence\\": 90, \\"actions\\": [\\"action1\\"], \\"urgent\\": true}. Analysis: " + analysis
 
       response = client.chat.completions.create(
           model="sonar",
@@ -142,8 +155,8 @@ tasks:
       
       backtick = chr(96)
       if text.startswith(backtick):
-          lines = text.split("\n")
-          text = "\n".join(lines[1:-1])
+          lines = text.split("\\n")
+          text = "\\n".join(lines[1:-1])
 
       decisions = json.loads(text)
 
@@ -260,8 +273,8 @@ tasks:
     beforeCommands:
       - pip install supabase --quiet
     env:
-      SUPABASE_URL: "{{ kv('SUPABASE_URL', 'system') }}"
-      SUPABASE_KEY: "{{ kv('SUPABASE_KEY', 'system') }}"
+      SUPABASE_URL: "{{ kv('SUPABASE_URL') }}"
+      SUPABASE_KEY: "{{ kv('SUPABASE_KEY') }}"
     inputFiles:
       data_summary.json: "{{ outputs.clean_data.outputFiles['data_summary.json'] }}"
       ai_summary.txt: "{{ outputs.ai_analysis.outputFiles['ai_summary.txt'] }}"
@@ -272,14 +285,10 @@ tasks:
       import json
       import os
 
-      supabase_url = os.getenv("SUPABASE_URL")
-      supabase_key = os.getenv("SUPABASE_KEY")
-      
-      if not supabase_url or not supabase_key:
-          print("⚠️ Supabase not configured - skipping")
-          exit(0)
-
-      supabase = create_client(supabase_url, supabase_key)
+      supabase = create_client(
+          os.getenv("SUPABASE_URL"),
+          os.getenv("SUPABASE_KEY")
+      )
 
       with open("data_summary.json") as f:
           data = json.load(f)
@@ -326,4 +335,131 @@ tasks:
 triggers:
   - id: daily_run
     type: io.kestra.plugin.core.trigger.Schedule
-    cron: "0 9 * * *"
+    cron: "0 9 * * *"`
+
+export function WorkflowDialog({ children }: WorkflowDialogProps) {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(WORKFLOW_CONTENT)
+      setCopied(true)
+      toast.success('Workflow copied to clipboard!', { icon: '📋' })
+      setTimeout(() => setCopied(false), 2000)
+    } catch (error) {
+      toast.error('Failed to copy workflow')
+    }
+  }
+
+  const handleOpenKestra = () => {
+    window.open('http://localhost:8080', '_blank')
+  }
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        {children}
+      </DialogTrigger>
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden bg-white dark:bg-slate-900 border-gray-200 dark:border-gray-800">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
+            <GitBranch className="h-5 w-5 text-purple-600" />
+            Wakanda BI Workflow Configuration
+          </DialogTitle>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Complete Kestra workflow definition for AI-powered business intelligence
+          </p>
+        </DialogHeader>
+        
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-gray-900 dark:text-white">
+              bi-dashboard.yml
+            </span>
+            <span className="text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 px-2 py-1 rounded">
+              7 Phases
+            </span>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCopy}
+              className="gap-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-slate-800"
+            >
+              {copied ? (
+                <>
+                  <Check className="h-4 w-4 text-green-600" />
+                  <span className="text-xs">Copied!</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="h-4 w-4" />
+                  <span className="text-xs">Copy</span>
+                </>
+              )}
+            </Button>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleOpenKestra}
+              className="gap-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-slate-800"
+            >
+              <ExternalLink className="h-4 w-4" />
+              <span className="text-xs">Open Kestra</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* Workflow Stats */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+          <StatCard
+            title="Phases"
+            value="7"
+            icon={<Play className="h-4 w-4 text-blue-600" />}
+            borderColor="border-l-blue-500"
+            description="Processing steps"
+            className="text-xs"
+          />
+          <StatCard
+            title="Data Sources"
+            value="Multi"
+            icon={<Database className="h-4 w-4 text-green-600" />}
+            borderColor="border-l-green-500"
+            description="CSV, URLs, Sheets"
+            className="text-xs"
+          />
+          <StatCard
+            title="AI Engine"
+            value="Perplexity"
+            icon={<Brain className="h-4 w-4 text-purple-600" />}
+            borderColor="border-l-purple-500"
+            description="Sonar model"
+            className="text-xs"
+          />
+          <StatCard
+            title="Automation"
+            value="Smart"
+            icon={<Target className="h-4 w-4 text-amber-600" />}
+            borderColor="border-l-amber-500"
+            description="Threshold-based"
+            className="text-xs"
+          />
+        </div>
+
+        <div className="overflow-auto max-h-[50vh] border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-slate-800">
+          <pre className="p-4 text-xs text-gray-800 dark:text-gray-200 whitespace-pre-wrap">
+            {WORKFLOW_CONTENT}
+          </pre>
+        </div>
+
+        <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 mt-4">
+          <span>🏆 AssembleHack25 Submission - Wakanda BI Engine</span>
+          <span>AI-Powered Business Intelligence Workflow</span>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}

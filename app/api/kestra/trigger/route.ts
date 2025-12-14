@@ -21,32 +21,22 @@ export async function POST(request: NextRequest) {
     const payload = {
       inputs: {
         data_source_url: body.dataSourceUrl,
-        recipient_email: body.recipientEmail || 'user@company.com',
         decision_threshold: body.decisionThreshold || 75
       }
     }
 
-    // Check if Kestra is available first
-    const healthResponse = await fetch(`${kestraUrl}/health`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-      signal: AbortSignal.timeout(5000)
-    }).catch(() => null)
-
-    if (!healthResponse || !healthResponse.ok) {
-      return NextResponse.json(
-        { 
-          error: 'Kestra server is not available. Please ensure Kestra is running at http://localhost:8080',
-          suggestion: 'Start Kestra with: docker run --pull=always --rm -it -p 8080:8080 --user=root -v /var/run/docker.sock:/var/run/docker.sock -v /tmp:/tmp kestra/kestra:latest server local'
-        },
-        { status: 503 }
-      )
-    }
-
-    // Prepare authentication if available
+    // Prepare authentication (required for Kestra)
     const username = process.env.KESTRA_USERNAME
     const password = process.env.KESTRA_PASSWORD
-    const auth = (username && password) ? Buffer.from(`${username}:${password}`).toString('base64') : null
+    
+    if (!username || !password) {
+      return NextResponse.json(
+        { error: 'Kestra authentication credentials not configured' },
+        { status: 500 }
+      )
+    }
+    
+    const auth = Buffer.from(`${username}:${password}`).toString('base64')
 
     // Kestra expects multipart/form-data
     const formData = new FormData()
@@ -58,7 +48,7 @@ export async function POST(request: NextRequest) {
 
     const headers = {
       'Accept': 'application/json',
-      ...(auth && { 'Authorization': `Basic ${auth}` })
+      'Authorization': `Basic ${auth}`
     }
 
     const response = await fetch(
