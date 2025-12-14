@@ -69,7 +69,7 @@ export const WorkflowPhase: React.FC<WorkflowPhaseProps> = ({
               {name}
             </h4>
             <Badge className={cn('text-xs', styles.badge)}>
-              {status.charAt(0).toUpperCase() + status.slice(1)}
+              {status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Unknown'}
             </Badge>
           </div>
           <p className="text-xs text-gray-600 dark:text-gray-400 break-words">

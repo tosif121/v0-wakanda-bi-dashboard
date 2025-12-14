@@ -40,10 +40,13 @@ export function AutomatedDecisions({ decision }: AutomatedDecisionsProps) {
     color?: string;
     label?: string;
   }) => {
+    // Ensure value is a valid number between 0 and 100
+    const safeValue = typeof value === 'number' && !isNaN(value) ? Math.max(0, Math.min(100, value)) : 0
+    
     const radius = (size - 8) / 2
     const circumference = radius * 2 * Math.PI
     const strokeDasharray = circumference
-    const strokeDashoffset = circumference - (value / 100) * circumference
+    const strokeDashoffset = circumference - (safeValue / 100) * circumference
 
     return (
       <div className="flex flex-col items-center gap-2">
@@ -66,13 +69,13 @@ export function AutomatedDecisions({ decision }: AutomatedDecisionsProps) {
               strokeWidth="6"
               fill="transparent"
               strokeDasharray={strokeDasharray}
-              strokeDashoffset={strokeDashoffset}
+              strokeDashoffset={strokeDashoffset.toString()}
               className={`${color} transition-all duration-500`}
               strokeLinecap="round"
             />
           </svg>
           <div className="absolute flex flex-col items-center">
-            <span className="text-xl font-bold text-gray-900 dark:text-white">{value}</span>
+            <span className="text-xl font-bold text-gray-900 dark:text-white">{safeValue}</span>
             {label && <span className="text-xs text-gray-600 dark:text-gray-400">{label}</span>}
           </div>
         </div>

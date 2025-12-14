@@ -32,10 +32,13 @@ export function LatestExecution({ execution }: LatestExecutionProps) {
 
   // Circular progress component
   const CircularProgress = ({ value, size = 120 }: { value: number; size?: number }) => {
+    // Ensure value is a valid number between 0 and 100
+    const safeValue = typeof value === 'number' && !isNaN(value) ? Math.max(0, Math.min(100, value)) : 0
+    
     const radius = (size - 8) / 2
     const circumference = radius * 2 * Math.PI
     const strokeDasharray = circumference
-    const strokeDashoffset = circumference - (value / 100) * circumference
+    const strokeDashoffset = circumference - (safeValue / 100) * circumference
 
     return (
       <div className="relative flex items-center justify-center">
@@ -57,13 +60,13 @@ export function LatestExecution({ execution }: LatestExecutionProps) {
             strokeWidth="4"
             fill="transparent"
             strokeDasharray={strokeDasharray}
-            strokeDashoffset={strokeDashoffset}
+            strokeDashoffset={strokeDashoffset.toString()}
             className="text-purple-600 dark:text-purple-400 transition-all duration-300"
             strokeLinecap="round"
           />
         </svg>
         <div className="absolute flex flex-col items-center">
-          <span className="text-2xl font-bold text-gray-900 dark:text-white">{value}</span>
+          <span className="text-2xl font-bold text-gray-900 dark:text-white">{safeValue}</span>
           <span className="text-xs text-gray-600 dark:text-gray-400">/ 100</span>
         </div>
       </div>
@@ -76,7 +79,7 @@ export function LatestExecution({ execution }: LatestExecutionProps) {
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg font-semibold text-gray-900 dark:text-white">Latest Execution</CardTitle>
           <Badge className={statusStyles[execution.status] || statusStyles.success}>
-            {execution.status.charAt(0).toUpperCase() + execution.status.slice(1)}
+            {execution.status ? execution.status.charAt(0).toUpperCase() + execution.status.slice(1) : 'Unknown'}
           </Badge>
         </div>
       </CardHeader>
@@ -110,17 +113,19 @@ export function LatestExecution({ execution }: LatestExecutionProps) {
         <div className="flex items-center justify-between">
           <div className="space-y-2">
             <h4 className="font-semibold text-gray-900 dark:text-white">Impact Score</h4>
-            <CircularProgress value={execution.impact_score} />
+            <CircularProgress value={typeof execution.impact_score === 'number' && !isNaN(execution.impact_score) ? execution.impact_score : 0} />
           </div>
           
           <div className="space-y-4">
             <div className="text-center">
               <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Confidence</div>
-              <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{execution.confidence}%</div>
+              <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                {typeof execution.confidence === 'number' && !isNaN(execution.confidence) ? execution.confidence : 0}%
+              </div>
               <div className="w-16 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                 <div 
                   className="h-full bg-emerald-500 transition-all duration-300"
-                  style={{ width: `${execution.confidence}%` }}
+                  style={{ width: `${typeof execution.confidence === 'number' && !isNaN(execution.confidence) ? execution.confidence : 0}%` }}
                 />
               </div>
             </div>

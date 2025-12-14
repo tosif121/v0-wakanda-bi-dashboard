@@ -49,6 +49,9 @@ export function ExecutionHistory({ executions = [], onDeleteExecution }: Executi
   }
 
   const ProgressBar = ({ value }: { value: number }) => {
+    // Ensure value is a valid number between 0 and 100
+    const safeValue = typeof value === 'number' && !isNaN(value) ? Math.max(0, Math.min(100, value)) : 0
+    
     const getColor = (score: number) => {
       if (score >= 80) return "bg-emerald-500"
       if (score >= 60) return "bg-amber-500"
@@ -59,11 +62,11 @@ export function ExecutionHistory({ executions = [], onDeleteExecution }: Executi
       <div className="flex items-center gap-2">
         <div className="w-16 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
           <div 
-            className={`h-full transition-all duration-300 ${getColor(value)}`}
-            style={{ width: `${value}%` }}
+            className={`h-full transition-all duration-300 ${getColor(safeValue)}`}
+            style={{ width: `${safeValue}%` }}
           />
         </div>
-        <span className="text-xs font-medium text-gray-900 dark:text-white w-8">{value}</span>
+        <span className="text-xs font-medium text-gray-900 dark:text-white w-8">{safeValue}</span>
       </div>
     )
   }
@@ -94,7 +97,7 @@ export function ExecutionHistory({ executions = [], onDeleteExecution }: Executi
         const status = row.getValue("status") as string
         return (
           <Badge className={statusStyles[status] || statusStyles.success}>
-            {status.charAt(0).toUpperCase() + status.slice(1)}
+            {status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Unknown'}
           </Badge>
         )
       },
@@ -186,8 +189,8 @@ export function ExecutionHistory({ executions = [], onDeleteExecution }: Executi
           data={filteredExecutions}
           columns={columns}
           searchPlaceholder="Search executions by ID or dataset..."
-          pageSizeOptions={[5, 10, 20, 50]}
-          initialPageSize={10}
+          pageSizeOptions={[10, 20, 50, 100]}
+          initialPageSize={20}
         />
       </CardContent>
       

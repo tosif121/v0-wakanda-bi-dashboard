@@ -68,7 +68,7 @@ export function KestraStatus({ executionId, onExecutionComplete }: KestraStatusP
     
     setLoading(true)
     try {
-      const executions = await listRecentExecutions(5)
+      const executions = await listRecentExecutions()
       setRecentExecutions(executions)
       setError('') // Clear error on success
     } catch (err) {
@@ -133,7 +133,7 @@ export function KestraStatus({ executionId, onExecutionComplete }: KestraStatusP
   }
 
   return (
-    <Card className="transition-all duration-200 hover:shadow-lg border-gray-200 dark:border-gray-800 bg-white dark:bg-slate-900">
+    <Card className="transition-all duration-200 hover:shadow-lg border-gray-200 dark:border-gray-800 bg-white dark:bg-slate-900 h-full flex flex-col">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
@@ -179,7 +179,7 @@ export function KestraStatus({ executionId, onExecutionComplete }: KestraStatusP
         </div>
       </CardHeader>
       
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 flex flex-col h-full">
         {/* Connection Status */}
         <div className="space-y-3">
           <h4 className="text-sm font-medium text-gray-900 dark:text-white">Connection Status</h4>
@@ -289,7 +289,7 @@ export function KestraStatus({ executionId, onExecutionComplete }: KestraStatusP
         )}
 
         {/* Recent Executions */}
-        <div className="space-y-4">
+        <div className="space-y-4 flex-1">
           <div className="flex items-center justify-between">
             <h4 className="font-medium text-gray-900 dark:text-white">Recent Executions</h4>
             {loading && <Loader2 className="h-4 w-4 animate-spin text-gray-500" />}
@@ -301,41 +301,46 @@ export function KestraStatus({ executionId, onExecutionComplete }: KestraStatusP
             </div>
           )}
           
-          <div className="space-y-2">
-            {!connection.isConnected ? (
-              <div className="text-center py-6">
-                <WifiOff className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Server offline - executions unavailable
-                </p>
-              </div>
-            ) : recentExecutions.length === 0 && !loading ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
-                No recent executions found
-              </p>
-            ) : (
-              recentExecutions.map((exec) => (
-                <div
-                  key={exec.id}
-                  className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    {getStatusIcon(exec.state.current)}
-                    <div>
-                      <p className="text-xs text-gray-900 dark:text-white">
-                        {exec.id.substring(0, 12)}...
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {exec.startDate ? new Date(exec.startDate).toLocaleString() : 'Unknown time'}
-                      </p>
-                    </div>
-                  </div>
-                  <Badge className={getStatusColor(exec.state.current)} variant="outline">
-                    {exec.state.current}
-                  </Badge>
+          {/* Fixed height container with overflow */}
+          <div className="h-64 overflow-y-auto">
+            <div className="space-y-2 pr-2">
+              {!connection.isConnected ? (
+                <div className="text-center py-6">
+                  <WifiOff className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Server offline - executions unavailable
+                  </p>
                 </div>
-              ))
-            )}
+              ) : recentExecutions.length === 0 && !loading ? (
+                <div className="text-center py-6">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    No recent executions found
+                  </p>
+                </div>
+              ) : (
+                recentExecutions.map((exec) => (
+                  <div
+                    key={exec.id}
+                    className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      {getStatusIcon(exec.state.current)}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs text-gray-900 dark:text-white truncate">
+                          {exec.id.substring(0, 12)}...
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                          {exec.startDate ? new Date(exec.startDate).toLocaleString() : 'Unknown time'}
+                        </p>
+                      </div>
+                    </div>
+                    <Badge className={getStatusColor(exec.state.current)} variant="outline">
+                      {exec.state.current}
+                    </Badge>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
       </CardContent>

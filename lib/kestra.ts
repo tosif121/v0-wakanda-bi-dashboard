@@ -108,7 +108,7 @@ export async function getExecutionStatus(executionId: string) {
 let lastExecutionsCheck = 0
 const EXECUTIONS_CHECK_COOLDOWN = 2000 // 2 seconds minimum between checks
 
-export async function listRecentExecutions(limit = 10) {
+export async function listRecentExecutions(limit = 100) {
   // Rate limiting: prevent too frequent execution checks
   const now = Date.now()
   if (now - lastExecutionsCheck < EXECUTIONS_CHECK_COOLDOWN) {

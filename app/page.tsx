@@ -74,9 +74,9 @@ export default function Dashboard() {
       const [supabaseData, kestraData] = await Promise.allSettled([
         // Supabase data
         Promise.all([
-          supabase.from('executions').select('*').order('created_at', { ascending: false }).limit(5),
-          supabase.from('ai_insights').select('*').order('created_at', { ascending: false }).limit(3),
-          supabase.from('decisions').select('*').order('created_at', { ascending: false }).limit(3),
+          supabase.from('executions').select('*').order('created_at', { ascending: false }),
+          supabase.from('ai_insights').select('*').order('created_at', { ascending: false }),
+          supabase.from('decisions').select('*').order('created_at', { ascending: false }),
         ]),
         // Latest Kestra execution
         fetch('/api/kestra/executions?limit=1').then((res) => (res.ok ? res.json() : null)),
@@ -140,7 +140,7 @@ export default function Dashboard() {
               decisions: decisions.filter((d: any) => d.execution_id === executions[0].id),
             }
           : latestKestraExecution, // Use Kestra execution if no Supabase data
-        executionHistory: executions.slice(0, 5),
+        executionHistory: executions,
       };
 
       setDashboardData(transformedData);
@@ -388,7 +388,7 @@ export default function Dashboard() {
                     { metric: 'Impact', score: dashboardData.latestExecution?.impact_score || 0, fullMark: 100 },
                     { metric: 'Reliability', score: 0, fullMark: 100 },
                   ],
-                  timeline: dashboardData.executionHistory.slice(0, 5).map((exec: any, index: number) => ({
+                  timeline: dashboardData.executionHistory.slice(0, 10).map((exec: any, index: number) => ({
                     time: new Date(exec.created_at || Date.now() - index * 60 * 60 * 1000).toLocaleTimeString(),
                     confidence: exec.confidence || 0,
                     accuracy: 0,
